@@ -4,5 +4,6 @@
   "_instructions": "Submit location updates via GitHub issue with format: 'Update location for [username] to [room]'",
   "_example_zone": "175766: '2:X'",
   "_example_room": "175766: '61302'",
-  "175766": "2:X"
+  "175766": "2:X",
+  "1111111111": "1:1"
 }

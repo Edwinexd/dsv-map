@@ -200,33 +200,23 @@ jobs:
             });
 
             // Create PR
+            const prBody = `## Location Update Request\n\n**Person ID:** ${personId}\n**New Room:** ${room}\n\nAutomatically generated from issue #${issueNumber}\n\n### Changes\n- Updated \`location_overrides.json\` to set room location for person ID ${personId}\n\nCloses #${issueNumber}`;
+
             const { data: pr } = await github.rest.pulls.create({
               owner: context.repo.owner,
               repo: context.repo.repo,
               title: `Location Update: Person ID ${personId} → ${room}`,
               head: branchName,
               base: defaultBranch,
-              body: `## Location Update Request
-
-**Person ID:** ${personId}
-**New Room:** ${room}
-
-Automatically generated from issue #${issueNumber}
-
-### Changes
-- Updated \`location_overrides.json\` to set room location for person ID ${personId}
-
-Closes #${issueNumber}`
+              body: prBody
             });
 
             // Comment on the issue
+            const commentBody = `✅ **Location update request processed!**\n\nA pull request has been created: #${pr.number}\n\nOnce merged, the location will be updated to **${room}** on the next map regeneration.`;
+
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: issueNumber,
-              body: `✅ **Location update request processed!**
-
-A pull request has been created: #${pr.number}
-
-Once merged, the location will be updated to **${room}** on the next map regeneration.`
+              body: commentBody
             });

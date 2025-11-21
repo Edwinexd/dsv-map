@@ -304,10 +304,10 @@ title_width = title_bbox[2] - title_bbox[0]
 title_x = panel_x + (SIDE_PANEL_WIDTH - title_width) // 2
 draw.text((title_x, 80), title, fill=(255, 255, 255), font=font_title)
 
-# Load and paste QR code image from repo
-print("Loading QR code image...")
+# Load and paste location update QR code (main QR code)
+print("Loading location update QR code...")
 try:
-    qr_img = Image.open('repo_qr.png').convert('RGBA')
+    qr_img = Image.open('qr_fix_location.png').convert('RGBA')
     qr_size = 500
     qr_img = qr_img.resize((qr_size, qr_size), Image.Resampling.LANCZOS)
     qr_x = panel_x + (SIDE_PANEL_WIDTH - qr_size) // 2
@@ -317,8 +317,9 @@ try:
     # Add instructions below QR code
     instruction_y = qr_y + qr_size + 30
     instruction_lines = [
-        "Scan to update",
-        "your location"
+        "Missing or in the",
+        "wrong place?",
+        "Scan to update!"
     ]
     for i, line in enumerate(instruction_lines):
         line_bbox = draw.textbbox((0, 0), line, font=font_info)
@@ -327,29 +328,24 @@ try:
         draw.text((line_x, instruction_y + i * 60), line, fill=(255, 255, 255), font=font_info)
 
 except Exception as e:
-    print(f"Warning: Could not load repo_qr.png: {e}")
+    print(f"Warning: Could not load qr_fix_location.png: {e}")
 
-# Add statistics (without the exact/interpolated/zone breakdown)
-# Adjust position to be after the instructions
-stats_y = qr_y + qr_size + 180
+# Add statistics (smaller font, single line)
+stats_y = qr_y + qr_size + 230
 total_placed = stats['ocr'] + stats['interpolated'] + stats['zone']
+missing_location = len(employees) - total_placed
 
-stats_lines = [
-    f"Total Employees: {len(employees)}",
-    f"Displayed: {total_placed}",
-]
+stats_text = f"({total_placed} out of {len(employees)} displayed)"
+stats_bbox = draw.textbbox((0, 0), stats_text, font=font_name)
+stats_width = stats_bbox[2] - stats_bbox[0]
+stats_x = panel_x + (SIDE_PANEL_WIDTH - stats_width) // 2
+draw.text((stats_x, stats_y), stats_text, fill=(255, 255, 255), font=font_name)
 
-for i, line in enumerate(stats_lines):
-    line_bbox = draw.textbbox((0, 0), line, font=font_stats)
-    line_width = line_bbox[2] - line_bbox[0]
-    line_x = panel_x + (SIDE_PANEL_WIDTH - line_width) // 2
-    draw.text((line_x, stats_y + i * 80), line, fill=(255, 255, 255), font=font_stats)
-
-# Add SU logo at the bottom
-print("Loading SU logo...")
+# Add repository QR code and SU logo at the bottom
+print("Loading repository QR code and SU logo...")
 try:
+    # Load SU logo
     logo_img = Image.open('SU_logotyp_Landscape_Invert_1000px.png').convert('RGBA')
-    # Resize logo to fit nicely
     logo_width = 700
     aspect_ratio = logo_img.height / logo_img.width
     logo_height = int(logo_width * aspect_ratio)
@@ -358,6 +354,39 @@ try:
     logo_x = panel_x + (SIDE_PANEL_WIDTH - logo_width) // 2
     logo_y = TARGET_HEIGHT - logo_height - 100
     canvas.paste(logo_img, (logo_x, logo_y), logo_img)
+
+    # Load repository QR code (same height as logo, positioned above it)
+    try:
+        repo_qr_img = Image.open('repo_qr.png').convert('RGBA')
+        repo_qr_height = logo_height
+        qr_aspect_ratio = repo_qr_img.width / repo_qr_img.height
+        repo_qr_width = int(repo_qr_height * qr_aspect_ratio)
+        repo_qr_img = repo_qr_img.resize((repo_qr_width, repo_qr_height), Image.Resampling.LANCZOS)
+
+        # Position QR above logo with some padding
+        repo_qr_y = logo_y - repo_qr_height - 60
+        repo_qr_x = panel_x + 50  # Left align with some padding
+
+        canvas.paste(repo_qr_img, (repo_qr_x, repo_qr_y), repo_qr_img)
+
+        # Add GitHub repo text to the right of QR code (three lines)
+        repo_lines = [
+            "Github:",
+            "@Edwinexd/",
+            "dsv-map"
+        ]
+        repo_text_x = repo_qr_x + repo_qr_width + 20
+        # Start position to center all three lines vertically with QR
+        line_height = 55
+        total_text_height = len(repo_lines) * line_height
+        repo_text_y = repo_qr_y + (repo_qr_height - total_text_height) // 2
+
+        for i, line in enumerate(repo_lines):
+            draw.text((repo_text_x, repo_text_y + i * line_height), line, fill=(255, 255, 255), font=font_info)
+
+    except Exception as e:
+        print(f"Warning: Could not load repo_qr.png: {e}")
+
 except Exception as e:
     print(f"Warning: Could not load SU_logotyp_Landscape_Invert_1000px.png: {e}")
 

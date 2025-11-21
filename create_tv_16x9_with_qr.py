@@ -459,9 +459,12 @@ for density, emp in employees_with_density:
     padding_box = 15
     # Width is the max of both boxes plus padding on both sides
     label_width = max(name_width, room_width) + (padding_box * 2)
-    # Height is name box height + gap + room box height
-    # Name box: padding + text + padding, then 10px gap, then room box: padding + text + padding
+    # Height is name box height + gap + room box height, each box has padding
     label_height = (padding_box + name_height + padding_box) + 10 + (padding_box + room_height + padding_box)
+
+    # Total dimensions including outer padding for collision detection
+    total_label_width = label_width + (padding_box * 2)
+    total_label_height = label_height + (padding_box * 2)
 
     if density >= 5:
         distance = 300
@@ -480,15 +483,17 @@ for density, emp in employees_with_density:
             label_x = x_canvas + dist * math.cos(angle_rad)
             label_y = y_canvas + dist * math.sin(angle_rad)
 
-            # Keep labels in the map area only
-            if (label_x < 50 or label_x + label_width > MAP_AREA_WIDTH - 50 or
-                label_y < 50 or label_y + label_height > TARGET_HEIGHT - 50):
+            # Keep labels in the map area only (accounting for padding)
+            if (label_x - padding_box < 50 or label_x + label_width + padding_box > MAP_AREA_WIDTH - 50 or
+                label_y - padding_box < 50 or label_y + label_height + padding_box > TARGET_HEIGHT - 50):
                 continue
 
-            label_rect = (label_x, label_y, label_x + label_width, label_y + label_height)
+            # label_rect matches the actual stored rectangles (with outer padding)
+            label_rect = (label_x - padding_box, label_y - padding_box,
+                         label_x + label_width + padding_box, label_y + label_height + padding_box)
 
-            # Use larger margins for label-to-label collision to prevent text overlap
-            collision_margin = 80 if density >= 5 else (70 if density >= 3 else 60)
+            # Use moderate margins for label-to-label collision to prevent text overlap
+            collision_margin = 40 if density >= 5 else (30 if density >= 3 else 20)
             collision = False
             for occupied in occupied_rects:
                 if rectangles_overlap(label_rect, occupied, margin=collision_margin):
@@ -512,23 +517,24 @@ for density, emp in employees_with_density:
             break
 
     if not placed:
-        # Fallback: try much larger distances with all angles
-        for dist in [900, 1000, 1100, 1200]:
+        # Fallback: try intermediate and larger distances with all angles
+        for dist in [600, 700, 800, 900, 1000]:
             for angle_deg in angle_preferences:
                 angle_rad = math.radians(angle_deg)
                 label_x = x_canvas + dist * math.cos(angle_rad)
                 label_y = y_canvas + dist * math.sin(angle_rad)
 
-                if (label_x < 50 or label_x + label_width > MAP_AREA_WIDTH - 50 or
-                    label_y < 50 or label_y + label_height > TARGET_HEIGHT - 50):
+                if (label_x - padding_box < 50 or label_x + label_width + padding_box > MAP_AREA_WIDTH - 50 or
+                    label_y - padding_box < 50 or label_y + label_height + padding_box > TARGET_HEIGHT - 50):
                     continue
 
-                label_rect = (label_x, label_y, label_x + label_width, label_y + label_height)
+                label_rect = (label_x - padding_box, label_y - padding_box,
+                             label_x + label_width + padding_box, label_y + label_height + padding_box)
 
                 # Use smaller margin for fallback
                 collision = False
                 for occupied in occupied_rects:
-                    if rectangles_overlap(label_rect, occupied, margin=40):
+                    if rectangles_overlap(label_rect, occupied, margin=20):
                         collision = True
                         break
 

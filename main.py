@@ -103,6 +103,15 @@ try:
 except FileNotFoundError:
     pass
 
+# Location overrides (user-submitted room changes)
+location_overrides = {}
+try:
+    with open("location_overrides.json", "r") as f:
+        data = json.load(f)
+        location_overrides = {k: v for k, v in data.items() if not k.startswith("_")}
+except FileNotFoundError:
+    pass
+
 import math
 
 def get_zone_from_special_room(room):
@@ -159,6 +168,13 @@ def interpolate_room_position(room_number, known_rooms):
         return (x, y, 'interpolated')
 
     return None
+
+# Apply location overrides to employee data
+for emp in all_employees:
+    person_id = emp['person_id']
+    if person_id in location_overrides:
+        emp['room'] = location_overrides[person_id]
+        print(f"Applied location override for {emp['name']} (ID: {person_id}): {location_overrides[person_id]}")
 
 # Assign coordinates
 employee_coords = {}

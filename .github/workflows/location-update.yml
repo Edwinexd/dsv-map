@@ -1,0 +1,232 @@
+name: Process Location Update
+
+on:
+  issues:
+    types: [opened]
+
+jobs:
+  process-location-update:
+    if: contains(github.event.issue.labels.*.name, 'location-update')
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Parse issue body
+        id: parse
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issueBody = context.payload.issue.body;
+            console.log('Issue body:', issueBody);
+
+            // Parse the issue form data
+            const personIdMatch = issueBody.match(/### Person ID\s*\n\s*([^\n]+)/);
+            const roomMatch = issueBody.match(/### Room Number\s*\n\s*([^\n]+)/);
+            const profileUrlMatch = issueBody.match(/### Daisy Profile URL\s*\n\s*([^\n]+)/);
+
+            const personId = personIdMatch ? personIdMatch[1].trim() : null;
+            const room = roomMatch ? roomMatch[1].trim() : null;
+            const profileUrl = profileUrlMatch ? profileUrlMatch[1].trim() : null;
+
+            console.log('Parsed - Person ID:', personId);
+            console.log('Parsed - Room:', room);
+            console.log('Parsed - Profile URL:', profileUrl);
+
+            // Validate the data
+            const errors = [];
+
+            // Check if all required fields are present
+            if (!personId || personId === '_No response_' || personId === '') {
+              errors.push('Person ID is required');
+            } else if (!/^\d+$/.test(personId)) {
+              errors.push('Person ID must be numeric (e.g., 175766)');
+            }
+
+            if (!room || room === '_No response_' || room === '') {
+              errors.push('Room Number is required');
+            } else {
+              // Validate room format: either "digits" or "digit:X" or "digit:digit"
+              if (!/^(\d{5}|\d:\w+)$/.test(room)) {
+                errors.push('Room Number must be either a 5-digit room number (e.g., 61302) or zone notation (e.g., 2:X)');
+              }
+            }
+
+            if (!profileUrl || profileUrl === '_No response_' || profileUrl === '') {
+              errors.push('Daisy Profile URL is required');
+            } else if (!profileUrl.includes('daisy.dsv.su.se')) {
+              errors.push('Profile URL must be a valid Daisy URL');
+            } else {
+              // Extract person ID from URL and verify it matches
+              const urlIdMatch = profileUrl.match(/personID=(\d+)/);
+              if (urlIdMatch) {
+                const urlPersonId = urlIdMatch[1];
+                if (personId && urlPersonId !== personId) {
+                  errors.push(`Person ID mismatch: form shows ${personId} but URL shows ${urlPersonId}`);
+                }
+              } else {
+                errors.push('Could not extract person ID from profile URL');
+              }
+            }
+
+            // Set outputs
+            core.setOutput('valid', errors.length === 0);
+            core.setOutput('person_id', personId || '');
+            core.setOutput('room', room || '');
+            core.setOutput('profile_url', profileUrl || '');
+            core.setOutput('errors', errors.join('\n- '));
+
+            return {
+              valid: errors.length === 0,
+              personId,
+              room,
+              profileUrl,
+              errors
+            };
+
+      - name: Close invalid issue
+        if: steps.parse.outputs.valid == 'false'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const errors = `${{ steps.parse.outputs.errors }}`;
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: `❌ **Invalid submission**\n\nThe following errors were found:\n- ${errors}\n\nPlease create a new issue with valid information.`
+            });
+
+            await github.rest.issues.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              state: 'closed',
+              state_reason: 'not_planned'
+            });
+
+      - name: Create PR for valid submission
+        if: steps.parse.outputs.valid == 'true'
+        uses: actions/github-script@v7
+        env:
+          PERSON_ID: ${{ steps.parse.outputs.person_id }}
+          ROOM: ${{ steps.parse.outputs.room }}
+        with:
+          script: |
+            const fs = require('fs');
+            const personId = process.env.PERSON_ID;
+            const room = process.env.ROOM;
+            const issueNumber = context.issue.number;
+
+            // Read the current location_overrides.json
+            const overridesPath = 'location_overrides.json';
+            let overrides = {};
+
+            try {
+              const content = fs.readFileSync(overridesPath, 'utf8');
+              overrides = JSON.parse(content);
+            } catch (error) {
+              console.log('Could not read existing overrides, starting fresh');
+              overrides = {
+                "_comment": "Location overrides allow users to specify their room/location via GitHub issue",
+                "_format": "person_id: room_number (e.g., '2:X' for zone 2, or '61302' for exact room)",
+                "_instructions": "Submit location updates via GitHub issue with format: 'Update location for [username] to [room]'",
+                "_example_zone": "175766: '2:X'",
+                "_example_room": "175766: '61302'"
+              };
+            }
+
+            // Update the override
+            overrides[personId] = room;
+
+            // Write back to file
+            fs.writeFileSync(overridesPath, JSON.stringify(overrides, null, 2) + '\n');
+
+            // Create a new branch
+            const branchName = `location-update-${personId}-${Date.now()}`;
+
+            // Get the default branch
+            const { data: repo } = await github.rest.repos.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo
+            });
+            const defaultBranch = repo.default_branch;
+
+            // Get the SHA of the default branch
+            const { data: ref } = await github.rest.git.getRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: `heads/${defaultBranch}`
+            });
+            const baseSha = ref.object.sha;
+
+            // Create new branch
+            await github.rest.git.createRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: `refs/heads/${branchName}`,
+              sha: baseSha
+            });
+
+            // Get the current file blob
+            let currentSha = null;
+            try {
+              const { data: currentFile } = await github.rest.repos.getContent({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                path: overridesPath,
+                ref: defaultBranch
+              });
+              currentSha = currentFile.sha;
+            } catch (error) {
+              console.log('File does not exist yet, will create it');
+            }
+
+            // Update the file
+            const newContent = Buffer.from(JSON.stringify(overrides, null, 2) + '\n').toString('base64');
+            await github.rest.repos.createOrUpdateFileContents({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              path: overridesPath,
+              message: `Update location for person ID ${personId} to ${room}`,
+              content: newContent,
+              branch: branchName,
+              sha: currentSha
+            });
+
+            // Create PR
+            const { data: pr } = await github.rest.pulls.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `Location Update: Person ID ${personId} → ${room}`,
+              head: branchName,
+              base: defaultBranch,
+              body: `## Location Update Request
+
+**Person ID:** ${personId}
+**New Room:** ${room}
+
+Automatically generated from issue #${issueNumber}
+
+### Changes
+- Updated \`location_overrides.json\` to set room location for person ID ${personId}
+
+Closes #${issueNumber}`
+            });
+
+            // Comment on the issue
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issueNumber,
+              body: `✅ **Location update request processed!**
+
+A pull request has been created: #${pr.number}
+
+Once merged, the location will be updated to **${room}** on the next map regeneration.`
+            });

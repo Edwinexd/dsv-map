@@ -54,6 +54,16 @@ try:
 except FileNotFoundError:
     pass
 
+# Location overrides (user-submitted room changes)
+location_overrides = {}
+try:
+    location_overrides_file = os.path.join(script_dir, "location_overrides.json")
+    with open(location_overrides_file, "r") as f:
+        data = json.load(f)
+        location_overrides = {k: v for k, v in data.items() if not k.startswith("_")}
+except FileNotFoundError:
+    pass
+
 def get_zone_from_special_room(room):
     if not room or not isinstance(room, str):
         return None
@@ -115,6 +125,13 @@ stats = {'ocr': 0, 'interpolated': 0, 'zone': 0, 'no_position': 0}
 employees_by_zone = {}
 
 print(f"Processing {len(employees)} employees...")
+
+# Apply location overrides to employee data
+for emp in employees:
+    person_id = emp['person_id']
+    if person_id in location_overrides:
+        emp['room'] = location_overrides[person_id]
+        print(f"Applied location override for {emp['name']} (ID: {person_id}): {location_overrides[person_id]}")
 
 for emp in employees:
     room = emp.get('room')
@@ -296,11 +313,25 @@ try:
     qr_x = panel_x + (SIDE_PANEL_WIDTH - qr_size) // 2
     qr_y = 250
     canvas.paste(qr_img, (qr_x, qr_y), qr_img)
+
+    # Add instructions below QR code
+    instruction_y = qr_y + qr_size + 30
+    instruction_lines = [
+        "Scan to update",
+        "your location"
+    ]
+    for i, line in enumerate(instruction_lines):
+        line_bbox = draw.textbbox((0, 0), line, font=font_info)
+        line_width = line_bbox[2] - line_bbox[0]
+        line_x = panel_x + (SIDE_PANEL_WIDTH - line_width) // 2
+        draw.text((line_x, instruction_y + i * 60), line, fill=(255, 255, 255), font=font_info)
+
 except Exception as e:
     print(f"Warning: Could not load repo_qr.png: {e}")
 
 # Add statistics (without the exact/interpolated/zone breakdown)
-stats_y = qr_y + qr_size + 80
+# Adjust position to be after the instructions
+stats_y = qr_y + qr_size + 180
 total_placed = stats['ocr'] + stats['interpolated'] + stats['zone']
 
 stats_lines = [

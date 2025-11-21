@@ -38,6 +38,7 @@ profile_pictures/
 # Keep only essential config/base files
 !room_positions_easyocr.json
 !manual_positions.json
+!location_overrides.json
 !floor_plan.png
 !zone_coordinate_picker.html
 !repo_qr.png

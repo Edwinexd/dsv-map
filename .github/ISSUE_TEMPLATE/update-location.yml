@@ -1,0 +1,52 @@
+name: Update My Location
+description: Update your room location on the DSV staff map
+title: "[Location Update] "
+labels: ["location-update"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Update Your Location
+        Use this form to update your room location on the DSV staff map.
+
+        You can find your Daisy person ID from your profile URL:
+        `https://daisy.dsv.su.se/anstalld/anstalldinfo.jspa?personID=YOUR_ID_HERE`
+
+  - type: input
+    id: person-id
+    attributes:
+      label: Person ID
+      description: Your Daisy person ID (from your profile URL)
+      placeholder: "175766"
+    validations:
+      required: true
+
+  - type: input
+    id: room-number
+    attributes:
+      label: Room Number
+      description: |
+        Your room number. Can be:
+        - A specific room number (e.g., 61302)
+        - A zone notation (e.g., 2:X for zone 2)
+      placeholder: "2:X"
+    validations:
+      required: true
+
+  - type: input
+    id: profile-url
+    attributes:
+      label: Daisy Profile URL
+      description: Link to your Daisy profile (for verification)
+      placeholder: "https://daisy.dsv.su.se/anstalld/anstalldinfo.jspa?personID=175766"
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional-info
+    attributes:
+      label: Additional Information
+      description: Any additional context or information
+      placeholder: Optional additional details
+    validations:
+      required: false

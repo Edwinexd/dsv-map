@@ -110,113 +110,48 @@ jobs:
               state_reason: 'not_planned'
             });
 
-      - name: Create PR for valid submission
+      - name: Update location_overrides.json
         if: steps.parse.outputs.valid == 'true'
+        run: |
+          PERSON_ID="${{ steps.parse.outputs.person_id }}"
+          ROOM="${{ steps.parse.outputs.room }}"
+
+          # Read and update the JSON file
+          jq --arg pid "$PERSON_ID" --arg room "$ROOM" \
+            '.[$pid] = $room' \
+            location_overrides.json > temp.json && mv temp.json location_overrides.json
+
+      - name: Create Pull Request
+        if: steps.parse.outputs.valid == 'true'
+        id: cpr
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: Update location for person ID ${{ steps.parse.outputs.person_id }} to ${{ steps.parse.outputs.room }}
+          branch: location-update-${{ steps.parse.outputs.person_id }}-${{ github.run_number }}
+          delete-branch: true
+          title: 'Location Update: Person ID ${{ steps.parse.outputs.person_id }} → ${{ steps.parse.outputs.room }}'
+          body: |
+            ## Location Update Request
+
+            **Person ID:** ${{ steps.parse.outputs.person_id }}
+            **New Room:** ${{ steps.parse.outputs.room }}
+
+            Automatically generated from issue #${{ github.event.issue.number }}
+
+            ### Changes
+            - Updated `location_overrides.json` to set room location for person ID ${{ steps.parse.outputs.person_id }}
+
+            Closes #${{ github.event.issue.number }}
+
+      - name: Comment on issue
+        if: steps.parse.outputs.valid == 'true' && steps.cpr.outputs.pull-request-number
         uses: actions/github-script@v7
-        env:
-          PERSON_ID: ${{ steps.parse.outputs.person_id }}
-          ROOM: ${{ steps.parse.outputs.room }}
         with:
           script: |
-            const fs = require('fs');
-            const personId = process.env.PERSON_ID;
-            const room = process.env.ROOM;
-            const issueNumber = context.issue.number;
-
-            // Read the current location_overrides.json
-            const overridesPath = 'location_overrides.json';
-            let overrides = {};
-
-            try {
-              const content = fs.readFileSync(overridesPath, 'utf8');
-              overrides = JSON.parse(content);
-            } catch (error) {
-              console.log('Could not read existing overrides, starting fresh');
-              overrides = {
-                "_comment": "Location overrides allow users to specify their room/location via GitHub issue",
-                "_format": "person_id: room_number (e.g., '2:X' for zone 2, or '61302' for exact room)",
-                "_instructions": "Submit location updates via GitHub issue with format: 'Update location for [username] to [room]'",
-                "_example_zone": "175766: '2:X'",
-                "_example_room": "175766: '61302'"
-              };
-            }
-
-            // Update the override
-            overrides[personId] = room;
-
-            // Write back to file
-            fs.writeFileSync(overridesPath, JSON.stringify(overrides, null, 2) + '\n');
-
-            // Create a new branch
-            const branchName = `location-update-${personId}-${Date.now()}`;
-
-            // Get the default branch
-            const { data: repo } = await github.rest.repos.get({
-              owner: context.repo.owner,
-              repo: context.repo.repo
-            });
-            const defaultBranch = repo.default_branch;
-
-            // Get the SHA of the default branch
-            const { data: ref } = await github.rest.git.getRef({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              ref: `heads/${defaultBranch}`
-            });
-            const baseSha = ref.object.sha;
-
-            // Create new branch
-            await github.rest.git.createRef({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              ref: `refs/heads/${branchName}`,
-              sha: baseSha
-            });
-
-            // Get the current file blob
-            let currentSha = null;
-            try {
-              const { data: currentFile } = await github.rest.repos.getContent({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                path: overridesPath,
-                ref: defaultBranch
-              });
-              currentSha = currentFile.sha;
-            } catch (error) {
-              console.log('File does not exist yet, will create it');
-            }
-
-            // Update the file
-            const newContent = Buffer.from(JSON.stringify(overrides, null, 2) + '\n').toString('base64');
-            await github.rest.repos.createOrUpdateFileContents({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              path: overridesPath,
-              message: `Update location for person ID ${personId} to ${room}`,
-              content: newContent,
-              branch: branchName,
-              sha: currentSha
-            });
-
-            // Create PR
-            const prBody = `## Location Update Request\n\n**Person ID:** ${personId}\n**New Room:** ${room}\n\nAutomatically generated from issue #${issueNumber}\n\n### Changes\n- Updated \`location_overrides.json\` to set room location for person ID ${personId}\n\nCloses #${issueNumber}`;
-
-            const { data: pr } = await github.rest.pulls.create({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              title: `Location Update: Person ID ${personId} → ${room}`,
-              head: branchName,
-              base: defaultBranch,
-              body: prBody
-            });
-
-            // Comment on the issue
-            const commentBody = `✅ **Location update request processed!**\n\nA pull request has been created: #${pr.number}\n\nOnce merged, the location will be updated to **${room}** on the next map regeneration.`;
-
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              issue_number: issueNumber,
-              body: commentBody
+              issue_number: context.issue.number,
+              body: `✅ **Location update request processed!**\n\nA pull request has been created: #${{ steps.cpr.outputs.pull-request-number }}\n\nOnce merged, the location will be updated to **${{ steps.parse.outputs.room }}** on the next map regeneration.`
             });

@@ -9,42 +9,43 @@ venv/
 # Environment (keep .env.example in git)
 .env
 
-# Temporary/test files
-daisy_*.html
-*_search.html
-*_employee.html
-*_profile.html
-profiles/
-all_detected_text.json
-all_detections_easyocr.json
-room_positions.json
-room_positions_enhanced.json
-employee_search_*.html
-staff_page_*.html
-act_employees_results.html
-employee_units.json
-
-# Profile pictures (personal data, regenerate with scripts)
-profile_pictures/
-
-# All generated data files (regenerate with main.py)
-*.json
-*.html
-*.png
-
 # Logs
 *.log
 
-# Keep only essential config/base files
-!room_positions_easyocr.json
-!manual_positions.json
-!location_overrides.json
-!floor_plan.png
-!zone_coordinate_picker.html
-!repo_qr.png
-!qr_fix_location.png
-!SU_logotyp_Landscape_Invert_1000px.png
+# macOS
 .DS_Store
 
 # Generated output files
 output/
+
+# Profile pictures (personal data, regenerate with scripts)
+profile_pictures/
+
+# Generated/temporary files (specific patterns)
+all_dsv_employees.json
+all_dsv_employees_complete.json
+all_dsv_employees_progress.json
+employee_units.json
+all_detected_text.json
+all_detections_easyocr.json
+room_positions.json
+room_positions_enhanced.json
+.cookie_cache.json
+
+# Temporary HTML files
+daisy_*.html
+*_search.html
+*_employee.html
+*_profile.html
+employee_search_*.html
+staff_page_*.html
+act_employees_results.html
+profiles/
+
+# Cookie cache
+.cookie_cache/
+
+# Keep these folders and their contents:
+# - data/        (configuration and data files)
+# - assets/      (images, PDFs, static resources)
+# - .github/     (workflows and templates)

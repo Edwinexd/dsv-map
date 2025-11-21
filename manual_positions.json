@@ -1,5 +1,0 @@
-{
-  "_comment": "Add manual positions for people not in Daisy (devs, etc.)",
-  "_format": "person_id: [x, y] where x,y are pixel coordinates on the 3056x3056 floor plan",
-  "_example": "123456: [1500, 2000]"
-}

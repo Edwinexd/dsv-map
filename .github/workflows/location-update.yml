@@ -119,7 +119,7 @@ jobs:
           # Read and update the JSON file
           jq --arg pid "$PERSON_ID" --arg room "$ROOM" \
             '.[$pid] = $room' \
-            location_overrides.json > temp.json && mv temp.json location_overrides.json
+            data/location_overrides.json > temp.json && mv temp.json data/location_overrides.json
 
       - name: Create Pull Request
         if: steps.parse.outputs.valid == 'true'
@@ -140,7 +140,7 @@ jobs:
             Automatically generated from issue #${{ github.event.issue.number }}
 
             ### Changes
-            - Updated `location_overrides.json` to set room location for person ID ${{ steps.parse.outputs.person_id }}
+            - Updated `data/location_overrides.json` to set room location for person ID ${{ steps.parse.outputs.person_id }}
 
             Closes #${{ github.event.issue.number }}
 

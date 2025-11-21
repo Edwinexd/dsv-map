@@ -2,6 +2,7 @@ import requests
 from bs4 import BeautifulSoup
 import os
 import re
+import sys
 from dotenv import load_dotenv
 
 
@@ -402,9 +403,13 @@ if __name__ == "__main__":
         print("No old slides to remove")
 
     # Upload the new file
-    if upload_file(session, file_path):
-        # Add it to the show with auto-delete enabled
-        add_slide_to_show(session)
-        print("\n✓ Upload and setup completed successfully!")
-    else:
+    if not upload_file(session, file_path):
         print("\n✗ Upload failed")
+        sys.exit(1)
+
+    # Add it to the show with auto-delete enabled
+    if not add_slide_to_show(session):
+        print("\n✗ Failed to add slide to show")
+        sys.exit(1)
+
+    print("\n✓ Upload and setup completed successfully!")

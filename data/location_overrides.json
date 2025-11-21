@@ -1,0 +1,8 @@
+{
+  "_comment": "User-submitted location updates managed via GitHub Issues automation",
+  "_format": "person_id: room_number (e.g., '2:X' for zone 2, or '61302' for exact room)",
+  "_instructions": "Users submit location update requests via GitHub Issues, which automatically creates a PR to update this file",
+  "_example_zone": "175766: '2:X'",
+  "_example_room": "175766: '61302'",
+  "175766": "2:X"
+}

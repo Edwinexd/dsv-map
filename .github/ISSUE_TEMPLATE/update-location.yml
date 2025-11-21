@@ -6,8 +6,13 @@ body:
   - type: markdown
     attributes:
       value: |
-        ## Update Your Location
-        Use this form to update your room location on the DSV staff map.
+        ## Request a Location Update
+        Use this form to request an update to your room location on the DSV staff map.
+
+        **How it works:**
+        1. Submit this form with your Person ID and new room location
+        2. An automated pull request will be created to update your location
+        3. Once the PR is reviewed and merged, your location will be updated on the next map regeneration
 
         You can find your Daisy person ID from your profile URL:
         `https://daisy.dsv.su.se/anstalld/anstalldinfo.jspa?personID=YOUR_ID_HERE`

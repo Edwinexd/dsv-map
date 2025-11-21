@@ -29,35 +29,20 @@ with open(employee_file, "r", encoding="utf-8") as f:
 script_dir = os.path.dirname(os.path.abspath(__file__))
 
 # Load OCR-detected room positions
-room_positions_file = os.path.join(script_dir, "room_positions_easyocr.json")
+room_positions_file = os.path.join(script_dir, "data", "room_positions_easyocr.json")
 with open(room_positions_file, "r", encoding="utf-8") as f:
     ocr_rooms = json.load(f)
 
 # Zone coordinates
-zone_centers = {
-    1: (1521, 1064),
-    2: (1720, 1269),
-    3: (2203, 551),
-    4: (1687, 2218),
-    5: (1683, 2522),
-    6: (2633, 2519),
-    7: (1951, 1570),
-    8: (2401, 1821),
-}
-
-# Manual positions
-manual_positions = {}
-try:
-    manual_positions_file = os.path.join(script_dir, "manual_positions.json")
-    with open(manual_positions_file, "r") as f:
-        manual_positions = json.load(f)
-except FileNotFoundError:
-    pass
+zone_centers_file = os.path.join(script_dir, "data", "zone_centers.json")
+with open(zone_centers_file, "r", encoding="utf-8") as f:
+    zone_data = json.load(f)
+    zone_centers = {int(k): tuple(v) for k, v in zone_data.items() if not k.startswith("_")}
 
 # Location overrides (user-submitted room changes)
 location_overrides = {}
 try:
-    location_overrides_file = os.path.join(script_dir, "location_overrides.json")
+    location_overrides_file = os.path.join(script_dir, "data", "location_overrides.json")
     with open(location_overrides_file, "r") as f:
         data = json.load(f)
         location_overrides = {k: v for k, v in data.items() if not k.startswith("_")}
@@ -137,12 +122,6 @@ for emp in employees:
     room = emp.get('room')
     person_id = emp['person_id']
     name = emp['name']
-
-    if person_id in manual_positions:
-        x, y = manual_positions[person_id]
-        employee_coords[person_id] = (x, y, 'manual', None)
-        stats['ocr'] += 1
-        continue
 
     if not room or room == "None":
         stats['no_position'] += 1
@@ -237,7 +216,8 @@ print(f"✓ Spread out overlapping employees")
 
 # Load floor plan
 print("Loading floor plan...")
-floor_plan_original = Image.open('floor_plan.png').convert('RGBA')
+floor_plan_path = os.path.join(script_dir, 'assets', 'floor_plan.png')
+floor_plan_original = Image.open(floor_plan_path).convert('RGBA')
 img_width, img_height = floor_plan_original.size
 
 # Calculate 16:9 dimensions
@@ -307,7 +287,8 @@ draw.text((title_x, 80), title, fill=(255, 255, 255), font=font_title)
 # Load and paste location update QR code (main QR code)
 print("Loading location update QR code...")
 try:
-    qr_img = Image.open('qr_fix_location.png').convert('RGBA')
+    qr_path = os.path.join(script_dir, 'assets', 'qr_fix_location.png')
+    qr_img = Image.open(qr_path).convert('RGBA')
     qr_size = 500
     qr_img = qr_img.resize((qr_size, qr_size), Image.Resampling.LANCZOS)
     qr_x = panel_x + (SIDE_PANEL_WIDTH - qr_size) // 2
@@ -345,7 +326,8 @@ draw.text((stats_x, stats_y), stats_text, fill=(255, 255, 255), font=font_name)
 print("Loading repository QR code and SU logo...")
 try:
     # Load SU logo
-    logo_img = Image.open('SU_logotyp_Landscape_Invert_1000px.png').convert('RGBA')
+    logo_path = os.path.join(script_dir, 'assets', 'SU_logotyp_Landscape_Invert_1000px.png')
+    logo_img = Image.open(logo_path).convert('RGBA')
     logo_width = 700
     aspect_ratio = logo_img.height / logo_img.width
     logo_height = int(logo_width * aspect_ratio)
@@ -357,7 +339,8 @@ try:
 
     # Load repository QR code (same height as logo, positioned above it)
     try:
-        repo_qr_img = Image.open('repo_qr.png').convert('RGBA')
+        repo_qr_path = os.path.join(script_dir, 'assets', 'repo_qr.png')
+        repo_qr_img = Image.open(repo_qr_path).convert('RGBA')
         repo_qr_height = logo_height
         qr_aspect_ratio = repo_qr_img.width / repo_qr_img.height
         repo_qr_width = int(repo_qr_height * qr_aspect_ratio)
@@ -589,8 +572,6 @@ for person_id, x, y, label_x, label_y, method, name, room in label_data:
             border_img = Image.new('RGBA', (border_size, border_size), (0, 0, 0, 0))
             border_draw = ImageDraw.Draw(border_img)
             border_color = (0, 47, 95, 255)
-            if method == 'manual':
-                border_color = (255, 107, 53, 255)
             border_draw.ellipse((0, 0, border_size-1, border_size-1), fill=border_color)
 
             border_img.paste(profile_pic, (3, 3), mask)

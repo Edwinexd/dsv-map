@@ -4,4 +4,3 @@ beautifulsoup4==4.14.2
 python-dotenv==1.2.1
 pillow==11.3.0
 aiohttp
-qrcode[pil]==8.2

@@ -80,33 +80,18 @@ with open("employee_units.json", "r", encoding="utf-8") as f:
     employee_units_map = unit_data['employee_units']
     all_units = unit_data['all_units']
 
-with open("room_positions_easyocr.json", "r", encoding="utf-8") as f:
+with open("data/room_positions_easyocr.json", "r", encoding="utf-8") as f:
     ocr_rooms = json.load(f)
 
 # Zone coordinates
-zone_centers = {
-    1: (1521, 1064),
-    2: (1720, 1269),
-    3: (2203, 551),
-    4: (1687, 2218),
-    5: (1683, 2522),
-    6: (2633, 2519),
-    7: (1951, 1570),
-    8: (2401, 1821),
-}
-
-# Manual positions
-manual_positions = {}
-try:
-    with open("manual_positions.json", "r") as f:
-        manual_positions = json.load(f)
-except FileNotFoundError:
-    pass
+with open("data/zone_centers.json", "r", encoding="utf-8") as f:
+    zone_data = json.load(f)
+    zone_centers = {int(k): tuple(v) for k, v in zone_data.items() if not k.startswith("_")}
 
 # Location overrides (user-submitted room changes)
 location_overrides = {}
 try:
-    with open("location_overrides.json", "r") as f:
+    with open("data/location_overrides.json", "r") as f:
         data = json.load(f)
         location_overrides = {k: v for k, v in data.items() if not k.startswith("_")}
 except FileNotFoundError:
@@ -183,11 +168,6 @@ employees_by_zone = {}
 for emp in all_employees:
     room = emp.get('room')
     person_id = emp['person_id']
-
-    if person_id in manual_positions:
-        x, y = manual_positions[person_id]
-        employee_coords[person_id] = (x, y, 'manual', None)
-        continue
 
     if not room or room == "None":
         continue
@@ -361,10 +341,6 @@ html = """
         .staff-marker.zone img {
             border-style: dotted;
         }
-        .staff-marker.manual img {
-            border-style: double;
-            border-color: #FF6B35;
-        }
         .tooltip {
             position: fixed;
             background: white;
@@ -452,8 +428,7 @@ for emp in all_employees:
         method_text = {
             'ocr': 'Exact position',
             'interpolated': 'Interpolated',
-            'zone': f'Zone {zone}',
-            'manual': 'Manual position'
+            'zone': f'Zone {zone}'
         }.get(method, 'Estimated')
 
         html += f"""
@@ -566,7 +541,7 @@ print(f"\nCopying assets to output directory...")
 import shutil
 
 # Copy floor plan
-shutil.copy2("floor_plan.png", "output/html/floor_plan.png")
+shutil.copy2("assets/floor_plan.png", "output/html/floor_plan.png")
 
 # Copy profile pictures
 output_pics_dir = "output/html/profile_pictures"

@@ -1,8 +1,0 @@
-{
-  "_comment": "Location overrides allow users to specify their room/location via GitHub issue",
-  "_format": "person_id or daisy_username: room_number (e.g., '2:X' for zone 2, or '61302' for exact room)",
-  "_instructions": "Submit location updates via GitHub issue with format: 'Update location for [username] to [room]'",
-  "_example_zone": "175766: '2:X'",
-  "_example_room": "175766: '61302'",
-  "175766": "2:X"
-}

@@ -126,7 +126,7 @@ def act_lab_admin_login(su_username: str, su_password: str) -> requests.Session:
     return session
 
 
-def upload_file(session: requests.Session, file_path: str, slide_name: str = "ACT Lab Map") -> bool:
+def upload_file(session: requests.Session, file_path: str, slide_name: str = "ACT Lab Map") -> None:
     """
     Upload a file to the ACT lab admin
 
@@ -135,8 +135,8 @@ def upload_file(session: requests.Session, file_path: str, slide_name: str = "AC
         file_path: Path to the image file to upload
         slide_name: Name for the uploaded slide
 
-    Returns:
-        True if upload was successful
+    Raises:
+        ValueError: If upload fails
     """
     response = session.get("https://www2.dsv.su.se/act-lab/admin/")
 
@@ -180,14 +180,12 @@ def upload_file(session: requests.Session, file_path: str, slide_name: str = "AC
         upload_response = session.post(action, files=files, data=form_data, allow_redirects=True)
 
         if upload_response.status_code not in [200, 302]:
-            print(f"Upload failed. Status: {upload_response.status_code}")
-            return False
+            raise ValueError(f"Upload failed. Status: {upload_response.status_code}")
 
     print(f"✓ File uploaded successfully!")
-    return True
 
 
-def configure_slide(session: requests.Session, slide_id: str, show_id: str = "1", autodelete: bool = True) -> bool:
+def configure_slide(session: requests.Session, slide_id: str, show_id: str = "1", autodelete: bool = True) -> None:
     """
     Configure a slide in a show (set auto-delete flag)
 
@@ -197,8 +195,8 @@ def configure_slide(session: requests.Session, slide_id: str, show_id: str = "1"
         show_id: ID of the show
         autodelete: Whether to enable auto-delete when removed from show
 
-    Returns:
-        True if configuration was successful
+    Raises:
+        ValueError: If configuration fails
     """
     response = session.get("https://www2.dsv.su.se/act-lab/admin/")
     soup = BeautifulSoup(response.text, "html.parser")
@@ -213,8 +211,7 @@ def configure_slide(session: requests.Session, slide_id: str, show_id: str = "1"
             break
 
     if not configure_form:
-        print(f"Could not find configure form for slide {slide_id}")
-        return False
+        raise ValueError(f"Could not find configure form for slide {slide_id}")
 
     action = configure_form.get("action")
     if not action.startswith("http"):
@@ -233,12 +230,10 @@ def configure_slide(session: requests.Session, slide_id: str, show_id: str = "1"
 
     config_response = session.post(action, data=form_data, allow_redirects=True)
 
-    if config_response.status_code in [200, 302]:
-        print(f"✓ Slide configured with auto-delete enabled")
-        return True
-    else:
-        print(f"Failed to configure slide. Status: {config_response.status_code}")
-        return False
+    if config_response.status_code not in [200, 302]:
+        raise ValueError(f"Failed to configure slide. Status: {config_response.status_code}")
+
+    print(f"✓ Slide configured with auto-delete enabled")
 
 
 def remove_old_slides_from_show(session: requests.Session, show_id: str = "1", keep_latest: int = 1) -> int:
@@ -259,8 +254,7 @@ def remove_old_slides_from_show(session: requests.Session, show_id: str = "1", k
     # Find the show section
     show_section = soup.find("div", id=show_id, class_="show")
     if not show_section:
-        print(f"Could not find show {show_id}")
-        return 0
+        raise ValueError(f"Could not find show {show_id}")
 
     # Find all slides in this show
     slides_in_show = show_section.find_all("div", class_="slide")
@@ -294,31 +288,35 @@ def remove_old_slides_from_show(session: requests.Session, show_id: str = "1", k
                 remove_form = form
                 break
 
-        if remove_form:
-            action = remove_form.get("action")
-            if not action.startswith("http"):
-                action = "https://www2.dsv.su.se/act-lab/admin/" + action.lstrip("/")
+        if not remove_form:
+            raise ValueError("Could not find remove form")
 
-            form_data = {
-                "action": "remove",
-                "remove": str(slide_id),
-                "from": show_id
-            }
+        action = remove_form.get("action")
+        if not action.startswith("http"):
+            action = "https://www2.dsv.su.se/act-lab/admin/" + action.lstrip("/")
 
-            remove_response = session.post(action, data=form_data, allow_redirects=True)
+        form_data = {
+            "action": "remove",
+            "remove": str(slide_id),
+            "from": show_id
+        }
 
-            if remove_response.status_code in [200, 302]:
-                print(f"✓ Removed slide {slide_id}")
-                removed_count += 1
-                # Refresh the page for next iteration
-                response = session.get("https://www2.dsv.su.se/act-lab/admin/")
-                soup = BeautifulSoup(response.text, "html.parser")
-                show_section = soup.find("div", id=show_id, class_="show")
+        remove_response = session.post(action, data=form_data, allow_redirects=True)
+
+        if remove_response.status_code not in [200, 302]:
+            raise ValueError(f"Failed to remove slide {slide_id}. Status: {remove_response.status_code}")
+
+        print(f"✓ Removed slide {slide_id}")
+        removed_count += 1
+        # Refresh the page for next iteration
+        response = session.get("https://www2.dsv.su.se/act-lab/admin/")
+        soup = BeautifulSoup(response.text, "html.parser")
+        show_section = soup.find("div", id=show_id, class_="show")
 
     return removed_count
 
 
-def add_slide_to_show(session: requests.Session, show_id: str = "1") -> bool:
+def add_slide_to_show(session: requests.Session, show_id: str = "1") -> None:
     """
     Add the most recently uploaded slide to a show
 
@@ -326,8 +324,8 @@ def add_slide_to_show(session: requests.Session, show_id: str = "1") -> bool:
         session: Authenticated session
         show_id: ID of the show to add the slide to (default: "1" for Labbet)
 
-    Returns:
-        True if slide was added successfully
+    Raises:
+        ValueError: If adding slide fails
     """
     response = session.get("https://www2.dsv.su.se/act-lab/admin/")
     soup = BeautifulSoup(response.text, "html.parser")
@@ -335,8 +333,7 @@ def add_slide_to_show(session: requests.Session, show_id: str = "1") -> bool:
     # Find the highest slide ID (most recent)
     all_slide_ids = re.findall(r'<div class="slide"\s+id="(\d+)"', response.text)
     if not all_slide_ids:
-        print("No slides found")
-        return False
+        raise ValueError("No slides found")
 
     slide_id = max(all_slide_ids, key=int)
     print(f"Adding most recent slide (ID: {slide_id}) to show {show_id}...")
@@ -349,8 +346,7 @@ def add_slide_to_show(session: requests.Session, show_id: str = "1") -> bool:
             break
 
     if not add_form:
-        print("Could not find form to add slide to show")
-        return False
+        raise ValueError("Could not find form to add slide to show")
 
     action = add_form.get("action")
     if not action.startswith("http"):
@@ -366,16 +362,13 @@ def add_slide_to_show(session: requests.Session, show_id: str = "1") -> bool:
 
     add_response = session.post(action, data=form_data, allow_redirects=True)
 
-    if add_response.status_code in [200, 302]:
-        print(f"✓ Slide added to show successfully!")
+    if add_response.status_code not in [200, 302]:
+        raise ValueError(f"Failed to add slide to show. Status: {add_response.status_code}")
 
-        # Configure the slide with auto-delete enabled
-        configure_slide(session, slide_id, show_id, autodelete=True)
+    print(f"✓ Slide added to show successfully!")
 
-        return True
-    else:
-        print(f"Failed to add slide to show. Status: {add_response.status_code}")
-        return False
+    # Configure the slide with auto-delete enabled
+    configure_slide(session, slide_id, show_id, autodelete=True)
 
 
 if __name__ == "__main__":
@@ -385,11 +378,13 @@ if __name__ == "__main__":
     su_password = os.getenv("SU_PASSWORD")
 
     if not su_username or not su_password:
-        raise ValueError("SU_USERNAME and SU_PASSWORD must be set in .env file")
+        print("✗ SU_USERNAME and SU_PASSWORD must be set in .env file")
+        sys.exit(1)
 
     file_path = "output/tv/ACT_map_tv.png"
     if not os.path.exists(file_path):
-        raise ValueError(f"File not found: {file_path}")
+        print(f"✗ File not found: {file_path}")
+        sys.exit(1)
 
     print("Logging in to ACT Lab admin...")
     session = act_lab_admin_login(su_username, su_password)
@@ -403,13 +398,9 @@ if __name__ == "__main__":
         print("No old slides to remove")
 
     # Upload the new file
-    if not upload_file(session, file_path):
-        print("\n✗ Upload failed")
-        sys.exit(1)
+    upload_file(session, file_path)
 
     # Add it to the show with auto-delete enabled
-    if not add_slide_to_show(session):
-        print("\n✗ Failed to add slide to show")
-        sys.exit(1)
+    add_slide_to_show(session)
 
     print("\n✓ Upload and setup completed successfully!")

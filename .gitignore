@@ -1,0 +1,48 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+*.egg-info/
+
+# Environment (keep .env.example in git)
+.env
+
+# Temporary/test files
+daisy_*.html
+*_search.html
+*_employee.html
+*_profile.html
+profiles/
+all_detected_text.json
+all_detections_easyocr.json
+room_positions.json
+room_positions_enhanced.json
+employee_search_*.html
+staff_page_*.html
+act_employees_results.html
+employee_units.json
+
+# Profile pictures (personal data, regenerate with scripts)
+profile_pictures/
+
+# All generated data files (regenerate with main.py)
+*.json
+*.html
+*.png
+
+# Logs
+*.log
+
+# Keep only essential config/base files
+!room_positions_easyocr.json
+!manual_positions.json
+!floor_plan.png
+!zone_coordinate_picker.html
+!repo_qr.png
+!SU_logotyp_Landscape_Invert_1000px.png
+.DS_Store
+
+# Generated output files
+output/

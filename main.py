@@ -2,9 +2,9 @@
 """
 Main script to generate DSV staff maps
 This script:
-1. Scrapes employee data from Daisy
+1. Scrapes employee data from Daisy (including units)
 2. Downloads profile pictures
-3. Scrapes unit information
+3. Fixes employee names
 4. Generates unified interactive HTML maps
 5. Generates TV-optimized PNG images
 
@@ -19,7 +19,6 @@ import asyncio
 import get_all_dsv_employees
 import download_all_dsv_pictures
 import fix_all_dsv_names
-import scrape_units
 import create_tv_16x9_with_qr
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -52,41 +51,41 @@ print("="*60)
 
 # Step 1: Scrape all DSV employees
 run_step(
-    "Step 1/6: Scraping all DSV employees from Daisy",
+    "Step 1/5: Scraping all DSV employees from Daisy",
     lambda: asyncio.run(get_all_dsv_employees.main())
 )
 
 # Step 2: Download profile pictures
 run_step(
-    "Step 2/6: Downloading profile pictures",
+    "Step 2/5: Downloading profile pictures",
     lambda: asyncio.run(download_all_dsv_pictures.main())
 )
 
 # Step 3: Fix names
 run_step(
-    "Step 3/6: Fixing employee names",
+    "Step 3/5: Fixing employee names",
     fix_all_dsv_names.main
 )
 
-# Step 4: Scrape units
-run_step(
-    "Step 4/6: Scraping unit information",
-    scrape_units.main
-)
-
-# Step 5: Generate unified HTML map
+# Step 4: Generate unified HTML map
 print(f"\n{'='*60}")
-print("Step 5/6: Generating unified interactive HTML map")
+print("Step 4/5: Generating unified interactive HTML map")
 print(f"{'='*60}")
 
 # Load data
 with open("all_dsv_employees_complete.json", "r", encoding="utf-8") as f:
     all_employees = json.load(f)
 
-with open("employee_units.json", "r", encoding="utf-8") as f:
-    unit_data = json.load(f)
-    employee_units_map = unit_data['employee_units']
-    all_units = unit_data['all_units']
+# Extract units from employee data (units are already provided by dsv-wrapper)
+employee_units_map = {}
+all_units_set = set()
+for emp in all_employees:
+    person_id = emp['person_id']
+    units = emp.get('units', [])
+    if units:
+        employee_units_map[person_id] = units
+        all_units_set.update(units)
+all_units = sorted(all_units_set)
 
 with open("data/room_positions_easyocr.json", "r", encoding="utf-8") as f:
     ocr_rooms = json.load(f)
@@ -563,9 +562,9 @@ if os.path.exists("profile_pictures"):
             )
 print(f"✅ Copied assets to output/html/")
 
-# Step 6: Generate TV images per unit (16:9 format with QR code)
+# Step 5: Generate TV images per unit (16:9 format with QR code)
 print(f"\n{'='*60}")
-print("Step 6/6: Generating 16:9 TV images with QR codes per unit")
+print("Step 5/5: Generating 16:9 TV images with QR codes per unit")
 print(f"{'='*60}")
 
 tv_files = []
@@ -618,7 +617,7 @@ for unit in all_units:
     # Clean up temporary file
     os.remove(unit_json)
 
-print(f"\n✅ Step 6/6: Generating 16:9 TV images with QR codes per unit completed")
+print(f"\n✅ Step 5/5: Generating 16:9 TV images with QR codes per unit completed")
 
 print("\n" + "="*60)
 print("🎉 ALL DONE!")

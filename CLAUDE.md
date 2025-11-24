@@ -18,13 +18,12 @@ This project generates interactive HTML maps and 16:9 TV displays showing DSV st
 
 ### Data Flow
 
-1. **Scraping** → `get_all_dsv_employees.py` scrapes employee data from Daisy
+1. **Scraping** → `get_all_dsv_employees.py` scrapes employee data from Daisy (including units via dsv-wrapper)
 2. **Pictures** → `download_all_dsv_pictures.py` downloads profile pictures
 3. **Name Fixing** → `fix_all_dsv_names.py` cleans up employee names
-4. **Units** → `scrape_units.py` extracts unit/department information
-5. **Map Generation** → `main.py` generates interactive HTML maps
-6. **TV Images** → `create_tv_16x9_with_qr.py` creates TV-optimized displays
-7. **Upload** → `upload_and_add_to_show.py` uploads to ACT Lab display system
+4. **Map Generation** → `main.py` generates interactive HTML maps
+5. **TV Images** → `create_tv_16x9_with_qr.py` creates TV-optimized displays
+6. **Upload** → `upload_and_add_to_show.py` uploads to ACT Lab display system
 
 ### Authentication
 
@@ -63,8 +62,9 @@ profile_pictures/ - Downloaded employee photos (gitignored)
 ### Key Scripts
 
 - **main.py** - Main orchestrator, runs all steps and generates HTML map
-- **get_all_dsv_employees.py** - Scrapes employee data using dsv-wrapper
+- **get_all_dsv_employees.py** - Scrapes employee data (including units) using dsv-wrapper
 - **download_all_dsv_pictures.py** - Downloads profile pictures using dsv-wrapper
+- **fix_all_dsv_names.py** - Cleans up employee names
 - **create_tv_16x9_with_qr.py** - Generates 16:9 TV images with QR codes
 - **upload_and_add_to_show.py** - Uploads to ACT Lab display system using dsv-wrapper
 
@@ -157,6 +157,7 @@ Edit `data/zone_centers.json` - no code changes needed!
 - `ACTLabClient` provides sync access to ACT Lab with automatic authentication
 - Credentials from environment variables (`SU_USERNAME` and `SU_PASSWORD`)
 - No manual session/cookie management needed
+- **IMPORTANT:** dsv-wrapper provides all employee data including units - no manual scraping or cookie handling ever needed
 
 ### Dependencies
 - **DO NOT** add `qrcode` library - QR codes are pre-generated images
@@ -182,10 +183,11 @@ python3 main.py
 ```
 
 This will:
-1. Scrape employee data
+1. Scrape employee data (including units via dsv-wrapper)
 2. Download profile pictures
-3. Generate HTML map
-4. Generate TV images for all units
+3. Fix employee names
+4. Generate HTML map
+5. Generate TV images for all units
 
 **Output locations:**
 - `output/html/staff_map_unified.html` - Interactive map

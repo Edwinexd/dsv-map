@@ -12,22 +12,30 @@ Usage: python3 main.py
 """
 import sys
 import os
-import subprocess
 import json
+import asyncio
+
+# Import the other scripts
+import get_all_dsv_employees
+import download_all_dsv_pictures
+import fix_all_dsv_names
+import scrape_units
+import create_tv_16x9_with_qr
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 os.chdir(script_dir)
 
-def run_command(description, command):
-    """Run a command and handle errors"""
+def run_step(description, func):
+    """Run a function and handle errors"""
     print(f"\n{'='*60}")
     print(f"{description}")
     print(f"{'='*60}")
-    result = subprocess.run(command, shell=True, capture_output=False)
-    if result.returncode != 0:
-        print(f"❌ Error: {description} failed")
+    try:
+        func()
+        print(f"✅ {description} completed")
+    except Exception as e:
+        print(f"❌ Error: {description} failed: {e}")
         sys.exit(1)
-    print(f"✅ {description} completed")
 
 def ensure_dir(path):
     """Ensure directory exists"""
@@ -43,27 +51,27 @@ print("DSV Staff Map Generator")
 print("="*60)
 
 # Step 1: Scrape all DSV employees
-run_command(
+run_step(
     "Step 1/6: Scraping all DSV employees from Daisy",
-    "venv/bin/python get_all_dsv_employees.py"
+    lambda: asyncio.run(get_all_dsv_employees.main())
 )
 
 # Step 2: Download profile pictures
-run_command(
+run_step(
     "Step 2/6: Downloading profile pictures",
-    "venv/bin/python download_all_dsv_pictures.py"
+    download_all_dsv_pictures.main
 )
 
 # Step 3: Fix names
-run_command(
+run_step(
     "Step 3/6: Fixing employee names",
-    "venv/bin/python fix_all_dsv_names.py"
+    fix_all_dsv_names.main
 )
 
 # Step 4: Scrape units
-run_command(
+run_step(
     "Step 4/6: Scraping unit information",
-    "venv/bin/python scrape_units.py"
+    scrape_units.main
 )
 
 # Step 5: Generate unified HTML map
@@ -564,13 +572,16 @@ tv_files = []
 
 # Generate TV image for all employees
 print(f"\n[All DSV] Generating 16:9 TV image for all {len(all_employees)} employees...")
-result = subprocess.run(
-    f"venv/bin/python create_tv_16x9_with_qr.py all_dsv_employees_complete.json output/tv/all_dsv_staff_map_tv.png --title 'All DSV Staff' --url 'https://dsv.su.se'",
-    shell=True, capture_output=False
-)
-if result.returncode == 0:
+try:
+    create_tv_16x9_with_qr.main(
+        "all_dsv_employees_complete.json",
+        "output/tv/all_dsv_staff_map_tv.png",
+        title='All DSV Staff'
+    )
     tv_files.append("output/tv/all_dsv_staff_map_tv.png")
     print(f"✅ Generated: output/tv/all_dsv_staff_map_tv.png")
+except Exception as e:
+    print(f"❌ Failed to generate: {e}")
 
 # Generate TV image for each unit
 for unit in all_units:
@@ -593,16 +604,16 @@ for unit in all_units:
     unit_output = f"output/tv/{unit.replace(' ', '_').replace('/', '_')}_map_tv.png"
     print(f"\n[{unit}] Generating 16:9 TV image for {len(unit_employees)} employees...")
 
-    result = subprocess.run(
-        f"venv/bin/python create_tv_16x9_with_qr.py {unit_json} {unit_output} --title '{unit}' --url 'https://dsv.su.se'",
-        shell=True, capture_output=False
-    )
-
-    if result.returncode == 0:
+    try:
+        create_tv_16x9_with_qr.main(
+            unit_json,
+            unit_output,
+            title=unit
+        )
         tv_files.append(unit_output)
         print(f"✅ Generated: {unit_output}")
-    else:
-        print(f"❌ Failed to generate: {unit_output}")
+    except Exception as e:
+        print(f"❌ Failed to generate: {unit_output}: {e}")
 
     # Clean up temporary file
     os.remove(unit_json)

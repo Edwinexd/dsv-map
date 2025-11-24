@@ -45,25 +45,25 @@ print("="*60)
 # Step 1: Scrape all DSV employees
 run_command(
     "Step 1/6: Scraping all DSV employees from Daisy",
-    "python3 get_all_dsv_employees.py"
+    "venv/bin/python get_all_dsv_employees.py"
 )
 
 # Step 2: Download profile pictures
 run_command(
     "Step 2/6: Downloading profile pictures",
-    "python3 download_all_dsv_pictures.py"
+    "venv/bin/python download_all_dsv_pictures.py"
 )
 
 # Step 3: Fix names
 run_command(
     "Step 3/6: Fixing employee names",
-    "python3 fix_all_dsv_names.py"
+    "venv/bin/python fix_all_dsv_names.py"
 )
 
 # Step 4: Scrape units
 run_command(
     "Step 4/6: Scraping unit information",
-    "python3 scrape_units.py"
+    "venv/bin/python scrape_units.py"
 )
 
 # Step 5: Generate unified HTML map
@@ -565,7 +565,7 @@ tv_files = []
 # Generate TV image for all employees
 print(f"\n[All DSV] Generating 16:9 TV image for all {len(all_employees)} employees...")
 result = subprocess.run(
-    f"python3 create_tv_16x9_with_qr.py all_dsv_employees_complete.json output/tv/all_dsv_staff_map_tv.png --title 'All DSV Staff' --url 'https://dsv.su.se'",
+    f"venv/bin/python create_tv_16x9_with_qr.py all_dsv_employees_complete.json output/tv/all_dsv_staff_map_tv.png --title 'All DSV Staff' --url 'https://dsv.su.se'",
     shell=True, capture_output=False
 )
 if result.returncode == 0:
@@ -594,7 +594,7 @@ for unit in all_units:
     print(f"\n[{unit}] Generating 16:9 TV image for {len(unit_employees)} employees...")
 
     result = subprocess.run(
-        f"python3 create_tv_16x9_with_qr.py {unit_json} {unit_output} --title '{unit}' --url 'https://dsv.su.se'",
+        f"venv/bin/python create_tv_16x9_with_qr.py {unit_json} {unit_output} --title '{unit}' --url 'https://dsv.su.se'",
         shell=True, capture_output=False
     )
 

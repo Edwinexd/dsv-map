@@ -1,28 +1,20 @@
 #!/usr/bin/env python3
 """
-Download profile pictures for all DSV employees
+Download profile pictures for all DSV employees - Using dsv-wrapper
 """
 import os
 import json
-import requests
+import asyncio
 from pathlib import Path
 from dotenv import load_dotenv
-from login import daisy_staff_login
+from dsv_wrapper import AsyncDaisyClient
 
 
-def main():
+async def main():
     # Load credentials from project root
     script_dir = os.path.dirname(os.path.abspath(__file__))
     env_path = os.path.join(script_dir, '.env')
     load_dotenv(env_path)
-
-    su_username = os.environ.get("SU_USERNAME")
-    su_password = os.environ.get("SU_PASSWORD")
-
-    print("Logging into Daisy...")
-    jsessionid = daisy_staff_login(su_username, su_password, use_cache=True)
-    cookies = {"JSESSIONID": jsessionid}
-    print(f"Successfully logged in!")
 
     # Load employee data
     employee_file = os.path.join(script_dir, "all_dsv_employees_complete.json")
@@ -39,55 +31,46 @@ def main():
     failed = []
     no_url = []
 
-    for i, emp in enumerate(employees, 1):
-        # Fix name from row_data if needed
-        if emp.get("row_data") and len(emp["row_data"]) >= 4:
-            lastname = emp["row_data"][2]
-            firstname = emp["row_data"][3]
-            emp["name"] = f"{firstname} {lastname}"
+    async with AsyncDaisyClient() as daisy:
+        for i, emp in enumerate(employees, 1):
+            # Fix name from row_data if needed
+            if emp.get("row_data") and len(emp["row_data"]) >= 4:
+                lastname = emp["row_data"][2]
+                firstname = emp["row_data"][3]
+                emp["name"] = f"{firstname} {lastname}"
 
-        name = emp.get('name', 'Unknown')
-        person_id = emp['person_id']
-        pic_url = emp.get('profile_pic_url')
+            name = emp.get('name', 'Unknown')
+            person_id = emp['person_id']
+            pic_url = emp.get('profile_pic_url')
 
-        if not pic_url:
-            no_url.append(name)
-            continue
+            if not pic_url:
+                no_url.append(name)
+                continue
 
-        pic_filename = f"{person_id}.jpg"
-        pic_path = pics_dir / pic_filename
+            pic_filename = f"{person_id}.jpg"
+            pic_path = pics_dir / pic_filename
 
-        # Skip if already exists
-        if pic_path.exists():
-            successful += 1
-            if i % 50 == 0:
-                print(f"[{i}/{len(employees)}] Skipping existing: {name}")
-            continue
+            # Skip if already exists
+            if pic_path.exists():
+                successful += 1
+                if i % 50 == 0:
+                    print(f"[{i}/{len(employees)}] Skipping existing: {name}")
+                continue
 
-        try:
             if i % 10 == 0:
                 print(f"[{i}/{len(employees)}] Downloading: {name}")
 
-            response = requests.get(pic_url, cookies=cookies, timeout=10)
+            # Use the wrapper's download method
+            content = await daisy.download_profile_picture(pic_url)
 
-            if response.status_code == 200:
-                content_type = response.headers.get('Content-Type', '')
-                if 'image' in content_type:
-                    with open(pic_path, "wb") as f:
-                        f.write(response.content)
+            with open(pic_path, "wb") as f:
+                f.write(content)
 
-                    file_size = pic_path.stat().st_size
-                    if file_size > 1000:
-                        successful += 1
-                    else:
-                        failed.append((name, f"File too small: {file_size} bytes"))
-                else:
-                    failed.append((name, f"Wrong content type: {content_type}"))
+            file_size = pic_path.stat().st_size
+            if file_size > 1000:
+                successful += 1
             else:
-                failed.append((name, f"HTTP {response.status_code}"))
-
-        except Exception as e:
-            failed.append((name, str(e)))
+                failed.append((name, f"File too small: {file_size} bytes"))
 
     print("\n" + "="*60)
     print("Summary:")
@@ -99,4 +82,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())

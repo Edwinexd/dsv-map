@@ -59,7 +59,7 @@ run_step(
 # Step 2: Download profile pictures
 run_step(
     "Step 2/6: Downloading profile pictures",
-    download_all_dsv_pictures.main
+    lambda: asyncio.run(download_all_dsv_pictures.main())
 )
 
 # Step 3: Fix names

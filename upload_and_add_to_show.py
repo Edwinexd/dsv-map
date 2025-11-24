@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 from dsv_wrapper import ACTLabClient
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
+logging.getLogger("httpx").setLevel(logging.WARNING)
 logger = logging.getLogger(__name__)
 
 load_dotenv()

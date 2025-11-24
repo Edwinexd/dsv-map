@@ -28,9 +28,11 @@ This project generates interactive HTML maps and 16:9 TV displays showing DSV st
 
 ### Authentication
 
-- **login.py** - Contains only `daisy_staff_login()` for Daisy authentication
-- **cookie_cache.py** - Caches authentication cookies to avoid repeated logins
-- **IMPORTANT:** This project only uses Daisy, NOT handledning systems (that code was removed)
+- All authentication is handled by the `dsv-wrapper` library
+- `AsyncDaisyClient` for Daisy access (employee data, profile pictures)
+- `ACTLabClient` for ACT Lab display system uploads
+- No manual cookie management needed - dsv-wrapper handles sessions internally
+- **IMPORTANT:** This project only uses Daisy and ACT Lab systems
 
 ### Positioning System
 
@@ -61,10 +63,10 @@ profile_pictures/ - Downloaded employee photos (gitignored)
 ### Key Scripts
 
 - **main.py** - Main orchestrator, runs all steps and generates HTML map
+- **get_all_dsv_employees.py** - Scrapes employee data using dsv-wrapper
+- **download_all_dsv_pictures.py** - Downloads profile pictures using dsv-wrapper
 - **create_tv_16x9_with_qr.py** - Generates 16:9 TV images with QR codes
-- **upload_and_add_to_show.py** - Uploads to ACT Lab display system
-- **login.py** - Daisy authentication only
-- **cookie_cache.py** - Cookie caching for authentication
+- **upload_and_add_to_show.py** - Uploads to ACT Lab display system using dsv-wrapper
 
 ### Data Files
 
@@ -149,10 +151,12 @@ Edit `data/zone_centers.json` - no code changes needed!
 - In Python: `{1: (1521, 1064)}` (int key, tuple of ints)
 - Conversion: `{int(k): tuple(v) for k, v in data.items() if not k.startswith("_")}`
 
-### Authentication
-- Only Daisy authentication is used
-- No handledning/mobil.handledning code
-- Cookie caching reduces repeated logins
+### Authentication & dsv-wrapper
+- All authentication handled by `dsv-wrapper` library (https://github.com/Edwinexd/dsv-wrapper)
+- `AsyncDaisyClient` provides async access to Daisy with automatic authentication
+- `ACTLabClient` provides sync access to ACT Lab with automatic authentication
+- Credentials from environment variables (`SU_USERNAME` and `SU_PASSWORD`)
+- No manual session/cookie management needed
 
 ### Dependencies
 - **DO NOT** add `qrcode` library - QR codes are pre-generated images

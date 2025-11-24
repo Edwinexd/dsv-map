@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 from dsv_wrapper import AsyncDaisyClient
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
+logging.getLogger("httpx").setLevel(logging.WARNING)
 
 load_dotenv()
 

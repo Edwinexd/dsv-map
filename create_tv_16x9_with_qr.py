@@ -551,7 +551,7 @@ def main(employee_json, output_png, title=None):
     
     # Draw profile pictures
     for person_id, x, y, label_x, label_y, method, name, room in label_data:
-        pic_path = f'profile_pictures/{person_id}.jpg'
+        pic_path = os.path.join(script_dir, 'profile_pictures', f'{person_id}.jpg')
         if os.path.exists(pic_path):
             try:
                 profile_pic = Image.open(pic_path).convert('RGBA')

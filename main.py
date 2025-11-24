@@ -10,101 +10,98 @@ This script:
 
 Usage: python3 main.py
 """
-import sys
-import os
-import json
+
 import asyncio
+import json
+import math
+import os
+import shutil
+
+import create_tv_16x9_with_qr
+import download_all_dsv_pictures
+import fix_all_dsv_names
 
 # Import the other scripts
 import get_all_dsv_employees
-import download_all_dsv_pictures
-import fix_all_dsv_names
-import create_tv_16x9_with_qr
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 os.chdir(script_dir)
 
+
 def run_step(description, func):
     """Run a function and handle errors"""
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"{description}")
-    print(f"{'='*60}")
-    try:
-        func()
-        print(f"✅ {description} completed")
-    except Exception as e:
-        print(f"❌ Error: {description} failed: {e}")
-        sys.exit(1)
+    print(f"{'=' * 60}")
+    func()
+    print(f"✅ {description} completed")
+
 
 def ensure_dir(path):
     """Ensure directory exists"""
     os.makedirs(path, exist_ok=True)
+
 
 # Ensure output directories exist
 ensure_dir("output/html")
 ensure_dir("output/tv")
 ensure_dir("profile_pictures")
 
-print("="*60)
+print("=" * 60)
 print("DSV Staff Map Generator")
-print("="*60)
+print("=" * 60)
 
 # Step 1: Scrape all DSV employees
 run_step(
     "Step 1/5: Scraping all DSV employees from Daisy",
-    lambda: asyncio.run(get_all_dsv_employees.main())
+    lambda: asyncio.run(get_all_dsv_employees.main()),
 )
 
 # Step 2: Download profile pictures
 run_step(
-    "Step 2/5: Downloading profile pictures",
-    lambda: asyncio.run(download_all_dsv_pictures.main())
+    "Step 2/5: Downloading profile pictures", lambda: asyncio.run(download_all_dsv_pictures.main())
 )
 
 # Step 3: Fix names
-run_step(
-    "Step 3/5: Fixing employee names",
-    fix_all_dsv_names.main
-)
+run_step("Step 3/5: Fixing employee names", fix_all_dsv_names.main)
 
 # Step 4: Generate unified HTML map
-print(f"\n{'='*60}")
+print(f"\n{'=' * 60}")
 print("Step 4/5: Generating unified interactive HTML map")
-print(f"{'='*60}")
+print(f"{'=' * 60}")
 
 # Load data
-with open("all_dsv_employees_complete.json", "r", encoding="utf-8") as f:
+with open("all_dsv_employees_complete.json", encoding="utf-8") as f:
     all_employees = json.load(f)
 
 # Extract units from employee data (units are already provided by dsv-wrapper)
 employee_units_map = {}
 all_units_set = set()
 for emp in all_employees:
-    person_id = emp['person_id']
-    units = emp.get('units', [])
+    person_id = emp["person_id"]
+    units = emp.get("units", [])
     if units:
         employee_units_map[person_id] = units
         all_units_set.update(units)
 all_units = sorted(all_units_set)
 
-with open("data/room_positions_easyocr.json", "r", encoding="utf-8") as f:
+with open("data/room_positions_easyocr.json", encoding="utf-8") as f:
     ocr_rooms = json.load(f)
 
 # Zone coordinates
-with open("data/zone_centers.json", "r", encoding="utf-8") as f:
+with open("data/zone_centers.json", encoding="utf-8") as f:
     zone_data = json.load(f)
     zone_centers = {int(k): tuple(v) for k, v in zone_data.items() if not k.startswith("_")}
 
 # Location overrides (user-submitted room changes)
 location_overrides = {}
 try:
-    with open("data/location_overrides.json", "r") as f:
+    with open("data/location_overrides.json") as f:
         data = json.load(f)
         location_overrides = {k: v for k, v in data.items() if not k.startswith("_")}
 except FileNotFoundError:
     pass
 
-import math
 
 def get_zone_from_special_room(room):
     if not room or not isinstance(room, str):
@@ -113,18 +110,19 @@ def get_zone_from_special_room(room):
         try:
             zone_num = int(room.split(":")[0])
             return zone_num if 1 <= zone_num <= 8 else None
-        except:
+        except (ValueError, IndexError):
             return None
     return None
+
 
 def interpolate_room_position(room_number, known_rooms):
     if not room_number or not isinstance(room_number, str):
         return None
-    if ':' in room_number:
+    if ":" in room_number:
         return None
     try:
         room_num = int(room_number)
-    except:
+    except ValueError:
         return None
 
     prefix = room_number[:2]
@@ -134,7 +132,7 @@ def interpolate_room_position(room_number, known_rooms):
         if known_room.startswith(prefix) and len(known_room) == 5:
             try:
                 same_prefix_rooms[int(known_room)] = (x, y)
-            except:
+            except ValueError:
                 pass
 
     if len(same_prefix_rooms) < 2:
@@ -157,24 +155,26 @@ def interpolate_room_position(room_number, known_rooms):
         ratio = (room_num - lower) / (upper - lower)
         x = x1 + (x2 - x1) * ratio
         y = y1 + (y2 - y1) * ratio
-        return (x, y, 'interpolated')
+        return (x, y, "interpolated")
 
     return None
 
+
 # Apply location overrides to employee data
 for emp in all_employees:
-    person_id = emp['person_id']
+    person_id = emp["person_id"]
     if person_id in location_overrides:
-        emp['room'] = location_overrides[person_id]
-        print(f"Applied location override for {emp['name']} (ID: {person_id}): {location_overrides[person_id]}")
+        emp["room"] = location_overrides[person_id]
+        override_room = location_overrides[person_id]
+        print(f"Applied location override for {emp['name']} (ID: {person_id}): {override_room}")
 
 # Assign coordinates
 employee_coords = {}
 employees_by_zone = {}
 
 for emp in all_employees:
-    room = emp.get('room')
-    person_id = emp['person_id']
+    room = emp.get("room")
+    person_id = emp["person_id"]
 
     if not room or room == "None":
         continue
@@ -188,7 +188,7 @@ for emp in all_employees:
 
     if room in ocr_rooms:
         x, y = ocr_rooms[room]
-        employee_coords[person_id] = (x, y, 'ocr', None)
+        employee_coords[person_id] = (x, y, "ocr", None)
         continue
 
     result = interpolate_room_position(room, ocr_rooms)
@@ -203,11 +203,11 @@ for zone, emps_and_rooms in employees_by_zone.items():
     num_emps = len(emps_and_rooms)
     radius = 150
 
-    for i, (emp, room) in enumerate(emps_and_rooms):
+    for i, (emp, _room) in enumerate(emps_and_rooms):
         angle = (2 * math.pi * i) / num_emps if num_emps > 1 else 0
         x = center_x + radius * math.cos(angle)
         y = center_y + radius * math.sin(angle)
-        employee_coords[emp['person_id']] = (x, y, 'zone', zone)
+        employee_coords[emp["person_id"]] = (x, y, "zone", zone)
 
 print(f"Positioned {len(employee_coords)} employees")
 
@@ -418,25 +418,25 @@ img_width = 3056
 img_height = 3056
 
 for emp in all_employees:
-    person_id = emp['person_id']
+    person_id = emp["person_id"]
     if person_id in employee_coords:
         x, y, method, zone = employee_coords[person_id]
-        name = emp['name']
-        room = emp.get('room', 'Unknown')
+        name = emp["name"]
+        room = emp.get("room", "Unknown")
         pic_filename = f"{person_id}.jpg"
 
         # Get units for this person
         person_units = employee_units_map.get(person_id, [])
-        units_str = ','.join(person_units) if person_units else ''
+        units_str = ",".join(person_units) if person_units else ""
 
         x_percent = (x / img_width) * 100
         y_percent = (y / img_height) * 100
 
         method_text = {
-            'ocr': 'Exact position',
-            'interpolated': 'Interpolated',
-            'zone': f'Zone {zone}'
-        }.get(method, 'Estimated')
+            "ocr": "Exact position",
+            "interpolated": "Interpolated",
+            "zone": f"Zone {zone}",
+        }.get(method, "Estimated")
 
         html += f"""
                 <div class="staff-marker {method}"
@@ -471,7 +471,8 @@ html += """
         markers.forEach(marker => {
             marker.addEventListener('mouseenter', (e) => {
                 tooltip.querySelector('.tooltip-name').textContent = marker.dataset.name;
-                tooltip.querySelector('.tooltip-room').textContent = `Room: ${marker.dataset.room} (${marker.dataset.accuracy})`;
+                const roomText = `Room: ${marker.dataset.room} (${marker.dataset.accuracy})`;
+                tooltip.querySelector('.tooltip-room').textContent = roomText;
                 tooltip.style.display = 'block';
             });
 
@@ -538,14 +539,13 @@ with open(output_html, "w", encoding="utf-8") as f:
     f.write(html)
 
 print(f"✅ Unified interactive map created: {output_html}")
-print(f"   Features: unit filter, search, tooltips")
+print("   Features: unit filter, search, tooltips")
 print(f"   Total employees: {len(all_employees)}")
 print(f"   Positioned: {len(employee_coords)}")
 print(f"   Units: {len(all_units)}")
 
 # Copy required assets to output directory
-print(f"\nCopying assets to output directory...")
-import shutil
+print("\nCopying assets to output directory...")
 
 # Copy floor plan
 shutil.copy2("assets/floor_plan.png", "output/html/floor_plan.png")
@@ -555,17 +555,16 @@ output_pics_dir = "output/html/profile_pictures"
 os.makedirs(output_pics_dir, exist_ok=True)
 if os.path.exists("profile_pictures"):
     for pic_file in os.listdir("profile_pictures"):
-        if pic_file.endswith(('.jpg', '.png')):
+        if pic_file.endswith((".jpg", ".png")):
             shutil.copy2(
-                os.path.join("profile_pictures", pic_file),
-                os.path.join(output_pics_dir, pic_file)
+                os.path.join("profile_pictures", pic_file), os.path.join(output_pics_dir, pic_file)
             )
-print(f"✅ Copied assets to output/html/")
+print("✅ Copied assets to output/html/")
 
 # Step 5: Generate TV images per unit (16:9 format with QR code)
-print(f"\n{'='*60}")
+print(f"\n{'=' * 60}")
 print("Step 5/5: Generating 16:9 TV images with QR codes per unit")
-print(f"{'='*60}")
+print(f"{'=' * 60}")
 
 tv_files = []
 
@@ -575,19 +574,20 @@ try:
     create_tv_16x9_with_qr.main(
         "all_dsv_employees_complete.json",
         "output/tv/all_dsv_staff_map_tv.png",
-        title='All DSV Staff'
+        title="All DSV Staff",
     )
     tv_files.append("output/tv/all_dsv_staff_map_tv.png")
-    print(f"✅ Generated: output/tv/all_dsv_staff_map_tv.png")
-except Exception as e:
+    print("✅ Generated: output/tv/all_dsv_staff_map_tv.png")
+except (OSError, ValueError) as e:
     print(f"❌ Failed to generate: {e}")
 
 # Generate TV image for each unit
 for unit in all_units:
     # Filter employees by unit
     unit_employees = [
-        emp for emp in all_employees
-        if emp['person_id'] in employee_units_map and unit in employee_units_map[emp['person_id']]
+        emp
+        for emp in all_employees
+        if emp["person_id"] in employee_units_map and unit in employee_units_map[emp["person_id"]]
     ]
 
     if not unit_employees:
@@ -604,27 +604,23 @@ for unit in all_units:
     print(f"\n[{unit}] Generating 16:9 TV image for {len(unit_employees)} employees...")
 
     try:
-        create_tv_16x9_with_qr.main(
-            unit_json,
-            unit_output,
-            title=unit
-        )
+        create_tv_16x9_with_qr.main(unit_json, unit_output, title=unit)
         tv_files.append(unit_output)
         print(f"✅ Generated: {unit_output}")
-    except Exception as e:
+    except (OSError, ValueError) as e:
         print(f"❌ Failed to generate: {unit_output}: {e}")
 
     # Clean up temporary file
     os.remove(unit_json)
 
-print(f"\n✅ Step 5/5: Generating 16:9 TV images with QR codes per unit completed")
+print("\n✅ Step 5/5: Generating 16:9 TV images with QR codes per unit completed")
 
-print("\n" + "="*60)
+print("\n" + "=" * 60)
 print("🎉 ALL DONE!")
-print("="*60)
-print(f"Generated files:")
-print(f"  - output/html/staff_map_unified.html (interactive map)")
+print("=" * 60)
+print("Generated files:")
+print("  - output/html/staff_map_unified.html (interactive map)")
 print(f"\nTV Images ({len(tv_files)}):")
 for tv_file in tv_files:
     print(f"  - {tv_file}")
-print("="*60)
+print("=" * 60)

@@ -2,15 +2,16 @@
 """
 Fix names in all_dsv_employees_complete.json from row_data
 """
-import os
+
 import json
+import os
 
 
 def main():
     # Load employee data
     script_dir = os.path.dirname(os.path.abspath(__file__))
     employee_file = os.path.join(script_dir, "all_dsv_employees_complete.json")
-    with open(employee_file, "r", encoding="utf-8") as f:
+    with open(employee_file, encoding="utf-8") as f:
         employees = json.load(f)
 
     print(f"Fixing names for {len(employees)} employees...")

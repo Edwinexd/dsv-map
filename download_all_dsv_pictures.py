@@ -2,10 +2,12 @@
 """
 Download profile pictures for all DSV employees - Using dsv-wrapper
 """
-import os
-import json
+
 import asyncio
+import json
+import os
 from pathlib import Path
+
 from dotenv import load_dotenv
 from dsv_wrapper import AsyncDaisyClient
 
@@ -13,12 +15,12 @@ from dsv_wrapper import AsyncDaisyClient
 async def main():
     # Load credentials from project root
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    env_path = os.path.join(script_dir, '.env')
+    env_path = os.path.join(script_dir, ".env")
     load_dotenv(env_path)
 
     # Load employee data
     employee_file = os.path.join(script_dir, "all_dsv_employees_complete.json")
-    with open(employee_file, "r", encoding="utf-8") as f:
+    with open(employee_file, encoding="utf-8") as f:
         employees = json.load(f)
 
     print(f"\nProcessing {len(employees)} DSV employees...")
@@ -39,9 +41,9 @@ async def main():
                 firstname = emp["row_data"][3]
                 emp["name"] = f"{firstname} {lastname}"
 
-            name = emp.get('name', 'Unknown')
-            person_id = emp['person_id']
-            pic_url = emp.get('profile_pic_url')
+            name = emp.get("name", "Unknown")
+            person_id = emp["person_id"]
+            pic_url = emp.get("profile_pic_url")
 
             if not pic_url:
                 no_url.append(name)
@@ -72,9 +74,9 @@ async def main():
             else:
                 failed.append((name, f"File too small: {file_size} bytes"))
 
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("Summary:")
-    print("="*60)
+    print("=" * 60)
     print(f"✅ Successfully downloaded: {successful}/{len(employees)}")
     print(f"❌ Failed: {len(failed)}")
     print(f"⚠️  No URL: {len(no_url)}")

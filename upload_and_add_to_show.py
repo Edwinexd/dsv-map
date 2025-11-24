@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Upload slide to ACT Lab and manage show - Using dsv-wrapper"""
+
 import logging
 from pathlib import Path
 

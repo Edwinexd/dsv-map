@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Get ALL DSV employees with rooms from Daisy - Using dsv-wrapper"""
+
 import asyncio
 import json
 import logging
@@ -43,11 +44,11 @@ async def main():
         with open(output_file, "w", encoding="utf-8") as f:
             json.dump(staff_data, f, indent=2, ensure_ascii=False)
 
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print(f"Final: {len(staff_data)} DSV employees")
         print(f"With rooms: {sum(1 for s in staff_data if s.get('room'))}")
         print(f"With emails: {sum(1 for s in staff_data if s.get('email'))}")
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
         print(f"\nSaved to: {output_file}")
 
 

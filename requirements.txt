@@ -1,9 +1,6 @@
 # Core dependencies for DSV Staff Map Generator
-requests==2.32.5
-beautifulsoup4==4.14.2
 python-dotenv==1.2.1
 pillow==11.3.0
-aiohttp
 
 # DSV Systems Integration
 git+https://github.com/Edwinexd/dsv-wrapper.git

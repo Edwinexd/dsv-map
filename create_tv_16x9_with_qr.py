@@ -88,7 +88,17 @@ def main(employee_json, output_png, title=None):
     def get_distance(p1, p2):
         return math.sqrt((p1[0] - p2[0]) ** 2 + (p1[1] - p2[1]) ** 2)
 
-    def spread_overlapping_employees():
+    def clamp(value, min_val, max_val):
+        return max(min_val, min(max_val, value))
+
+    def spread_overlapping_employees(boundary_width, boundary_height):
+        # Define map boundaries for clamping (with margin for profile pictures)
+        map_margin = 100  # Keep employees this far from edges
+        min_map_x = map_margin
+        max_map_x = boundary_width - map_margin
+        min_map_y = map_margin
+        max_map_y = boundary_height - map_margin
+
         coords_list = [
             (pid, x, y, method, zone) for pid, (x, y, method, zone) in employee_coords.items()
         ]
@@ -117,6 +127,9 @@ def main(employee_json, output_png, title=None):
                 if abs(force_x) > 0.01 or abs(force_y) > 0.01:
                     new_x = x1 + force_x * spread_factor * min_distance
                     new_y = y1 + force_y * spread_factor * min_distance
+                    # Clamp to map boundaries
+                    new_x = clamp(new_x, min_map_x, max_map_x)
+                    new_y = clamp(new_y, min_map_y, max_map_y)
                     coords_list[i] = (pid1, new_x, new_y, method1, zone1)
                     employee_coords[pid1] = (new_x, new_y, method1, zone1)
                     moved = True
@@ -128,7 +141,8 @@ def main(employee_json, output_png, title=None):
         if moved:
             print(f"  Completed {max_iterations} iterations")
 
-    spread_overlapping_employees()
+    # Floor plan is 3056x3056 pixels, coordinates are in that space
+    spread_overlapping_employees(3056, 3056)
     print("✓ Spread out overlapping employees")
 
     # Load floor plan
@@ -407,8 +421,9 @@ def main(employee_json, output_png, title=None):
                         break
 
                 if not collision:
+                    # None = no elbow point (straight line)
                     label_data.append(
-                        (person_id, x_canvas, y_canvas, label_x, label_y, method, name, room)
+                        (person_id, x_canvas, y_canvas, label_x, label_y, method, name, room, None)
                     )
                     # Store both name and room boxes separately for collision detection
                     name_box_rect = (
@@ -463,9 +478,18 @@ def main(employee_json, output_png, title=None):
                             break
 
                     if not collision:
-                        label_data.append(
-                            (person_id, x_canvas, y_canvas, label_x, label_y, method, name, room)
+                        entry = (
+                            person_id,
+                            x_canvas,
+                            y_canvas,
+                            label_x,
+                            label_y,
+                            method,
+                            name,
+                            room,
+                            None,
                         )
+                        label_data.append(entry)
                         name_box_rect = (
                             label_x - padding_box,
                             label_y - padding_box,
@@ -486,31 +510,351 @@ def main(employee_json, output_png, title=None):
                 if placed:
                     break
 
+            # Try bent/elbow lines - route around obstacles to reach available space
+            if not placed:
+                # L-shaped routes: first go up/down, then horizontally to label
+                # This allows reaching the left side of the map when direct paths are blocked
+                # Format: (elbow_dx, elbow_dy, label_dx, label_dy) relative to employee
+                # Prioritize routes that end on the left side (negative label_dx)
+                elbow_routes = [
+                    # Go up first, then left to label (various distances)
+                    (0, -150, -300, -150),
+                    (0, -200, -400, -200),
+                    (0, -200, -600, -200),
+                    (0, -200, -800, -200),
+                    (0, -200, -1000, -200),
+                    (0, -300, -500, -300),
+                    (0, -300, -700, -300),
+                    (0, -300, -900, -300),
+                    (0, -400, -600, -400),
+                    (0, -400, -800, -400),
+                    (0, -400, -1000, -400),
+                    # Go down first, then left to label
+                    (0, 150, -300, 150),
+                    (0, 200, -400, 200),
+                    (0, 200, -600, 200),
+                    (0, 200, -800, 200),
+                    (0, 200, -1000, 200),
+                    (0, 300, -500, 300),
+                    (0, 300, -700, 300),
+                    (0, 300, -900, 300),
+                    (0, 400, -600, 400),
+                    (0, 400, -800, 400),
+                    (0, 400, -1000, 400),
+                    # Go up first, then right to label (fallback)
+                    (0, -200, 400, -200),
+                    (0, -200, 600, -200),
+                    # Go down first, then right to label (fallback)
+                    (0, 200, 400, 200),
+                    (0, 200, 600, 200),
+                    # Go left first, then up/down to label
+                    (-200, 0, -400, -200),
+                    (-200, 0, -400, 200),
+                    (-300, 0, -500, -250),
+                    (-300, 0, -500, 250),
+                    (-400, 0, -600, -300),
+                    (-400, 0, -600, 300),
+                    (-500, 0, -700, -350),
+                    (-500, 0, -700, 350),
+                    # Go right first, then up/down (fallback)
+                    (300, 0, 300, -250),
+                    (300, 0, 300, 250),
+                ]
+
+                for elbow_dx, elbow_dy, label_dx, label_dy in elbow_routes:
+                    elbow_x = x_canvas + elbow_dx
+                    elbow_y = y_canvas + elbow_dy
+                    label_x = x_canvas + label_dx
+                    label_y = y_canvas + label_dy
+
+                    # Check label bounds
+                    if (
+                        label_x - padding_box < 50
+                        or label_x + label_width + padding_box > map_area_width - 50
+                        or label_y - padding_box < 50
+                        or label_y + label_height + padding_box > target_height - 50
+                    ):
+                        continue
+
+                    # Check elbow point bounds
+                    if (
+                        elbow_x < 50
+                        or elbow_x > map_area_width - 50
+                        or elbow_y < 50
+                        or elbow_y > target_height - 50
+                    ):
+                        continue
+
+                    label_rect = (
+                        label_x - padding_box,
+                        label_y - padding_box,
+                        label_x + label_width + padding_box,
+                        label_y + label_height + padding_box,
+                    )
+
+                    collision = False
+                    for occupied in occupied_rects:
+                        if rectangles_overlap(label_rect, occupied, margin=15):
+                            collision = True
+                            break
+
+                    if not collision:
+                        label_data.append(
+                            (
+                                person_id,
+                                x_canvas,
+                                y_canvas,
+                                label_x,
+                                label_y,
+                                method,
+                                name,
+                                room,
+                                (elbow_x, elbow_y),
+                            )
+                        )
+                        name_box_rect = (
+                            label_x - padding_box,
+                            label_y - padding_box,
+                            label_x + name_width + padding_box,
+                            label_y + name_height + padding_box,
+                        )
+                        room_y_pos = label_y + name_height + padding_box + 10
+                        room_box_rect = (
+                            label_x - padding_box,
+                            room_y_pos - padding_box,
+                            label_x + room_width + padding_box,
+                            room_y_pos + room_height + padding_box,
+                        )
+                        occupied_rects.append(name_box_rect)
+                        occupied_rects.append(room_box_rect)
+                        placed = True
+                        print(f"  Placed {name} with elbow line (route to left)")
+                        break
+
             # Ultimate fallback if still not placed
             if not placed:
-                print(f"⚠️  Could not place label for {name} at any distance")
-                # Force placement at default angle with very large distance
-                angle_rad = math.radians(315)
-                label_x = x_canvas + 1000 * math.cos(angle_rad)
-                label_y = y_canvas + 1000 * math.sin(angle_rad)
-                label_data.append(
-                    (person_id, x_canvas, y_canvas, label_x, label_y, method, name, room)
-                )
+                print(f"⚠️  Could not place label for {name} at any distance, trying fallback...")
+                # Try all angles at various distances, WITH collision checking
+                fallback_angles = [180, 225, 135, 270, 90, 315, 45, 0]  # Prefer left side first
+                fallback_placed = False
+                for dist in [200, 300, 400, 500, 600, 700, 800]:
+                    for angle_deg in fallback_angles:
+                        angle_rad = math.radians(angle_deg)
+                        label_x = x_canvas + dist * math.cos(angle_rad)
+                        label_y = y_canvas + dist * math.sin(angle_rad)
+
+                        # Check if within map bounds
+                        if not (
+                            label_x - padding_box >= 50
+                            and label_x + label_width + padding_box <= map_area_width - 50
+                            and label_y - padding_box >= 50
+                            and label_y + label_height + padding_box <= target_height - 50
+                        ):
+                            continue
+
+                        # Check for collisions
+                        label_rect = (
+                            label_x - padding_box,
+                            label_y - padding_box,
+                            label_x + label_width + padding_box,
+                            label_y + label_height + padding_box,
+                        )
+                        collision = False
+                        for occupied in occupied_rects:
+                            if rectangles_overlap(label_rect, occupied, margin=10):
+                                collision = True
+                                break
+
+                        if not collision:
+                            entry = (
+                                person_id,
+                                x_canvas,
+                                y_canvas,
+                                label_x,
+                                label_y,
+                                method,
+                                name,
+                                room,
+                                None,
+                            )
+                            label_data.append(entry)
+                            occupied_rects.append(label_rect)
+                            fallback_placed = True
+                            print(f"    Placed at angle {angle_deg}° distance {dist}")
+                            break
+                    if fallback_placed:
+                        break
+
+                # Final fallback: try extreme elbow routes to far left corners
+                if not fallback_placed:
+                    print("    Trying extreme elbow routes to corners...")
+                    extreme_routes = [
+                        # Route to top-left corner area
+                        (0, -300, -1200, -500),
+                        (0, -400, -1000, -600),
+                        (0, -500, -800, -700),
+                        # Route to bottom-left corner area
+                        (0, 300, -1200, 500),
+                        (0, 400, -1000, 600),
+                        (0, 500, -800, 700),
+                        # Route far left with small vertical offset
+                        (-200, 0, -1000, -100),
+                        (-200, 0, -1000, 100),
+                        (-300, 0, -1200, -150),
+                        (-300, 0, -1200, 150),
+                    ]
+                    for elbow_dx, elbow_dy, label_dx, label_dy in extreme_routes:
+                        elbow_x = x_canvas + elbow_dx
+                        elbow_y = y_canvas + elbow_dy
+                        label_x = x_canvas + label_dx
+                        label_y = y_canvas + label_dy
+
+                        # Check label bounds
+                        if not (
+                            label_x - padding_box >= 50
+                            and label_x + label_width + padding_box <= map_area_width - 50
+                            and label_y - padding_box >= 50
+                            and label_y + label_height + padding_box <= target_height - 50
+                        ):
+                            continue
+
+                        # Check elbow bounds
+                        if not (
+                            elbow_x >= 50
+                            and elbow_x <= map_area_width - 50
+                            and elbow_y >= 50
+                            and elbow_y <= target_height - 50
+                        ):
+                            continue
+
+                        label_rect = (
+                            label_x - padding_box,
+                            label_y - padding_box,
+                            label_x + label_width + padding_box,
+                            label_y + label_height + padding_box,
+                        )
+                        collision = False
+                        for occupied in occupied_rects:
+                            if rectangles_overlap(label_rect, occupied, margin=5):
+                                collision = True
+                                break
+
+                        if not collision:
+                            label_data.append(
+                                (
+                                    person_id,
+                                    x_canvas,
+                                    y_canvas,
+                                    label_x,
+                                    label_y,
+                                    method,
+                                    name,
+                                    room,
+                                    (elbow_x, elbow_y),
+                                )
+                            )
+                            occupied_rects.append(label_rect)
+                            fallback_placed = True
+                            print("    Placed with extreme elbow route to corner")
+                            break
+
+                # Absolute final fallback: find ANY free space on the left
+                if not fallback_placed:
+                    print("    Scanning for any free space on left side...")
+                    # Scan the left portion of the map for any free spot
+                    for scan_y in range(100, target_height - 200, 80):
+                        for scan_x in range(100, map_area_width // 3, 80):
+                            label_rect = (
+                                scan_x - padding_box,
+                                scan_y - padding_box,
+                                scan_x + label_width + padding_box,
+                                scan_y + label_height + padding_box,
+                            )
+                            collision = False
+                            for occupied in occupied_rects:
+                                if rectangles_overlap(label_rect, occupied, margin=5):
+                                    collision = True
+                                    break
+                            if not collision:
+                                # Found free space, use elbow to route there
+                                # Elbow point: go up/down first to align
+                                if scan_y < y_canvas:
+                                    elbow_y = scan_y + 100
+                                else:
+                                    elbow_y = scan_y - 100
+                                elbow_x = x_canvas
+                                label_data.append(
+                                    (
+                                        person_id,
+                                        x_canvas,
+                                        y_canvas,
+                                        scan_x,
+                                        scan_y,
+                                        method,
+                                        name,
+                                        room,
+                                        (elbow_x, elbow_y),
+                                    )
+                                )
+                                occupied_rects.append(label_rect)
+                                fallback_placed = True
+                                print(f"    Found free space at ({scan_x}, {scan_y})")
+                                break
+                        if fallback_placed:
+                            break
+
+                # True last resort: just place it somewhere visible
+                if not fallback_placed:
+                    print("    WARNING: No free space found, forcing placement")
+                    label_x = 100
+                    label_y = 100 + len(label_data) * 100  # Stack at top-left
+                    label_y = min(label_y, target_height - 200)
+                    entry = (
+                        person_id,
+                        x_canvas,
+                        y_canvas,
+                        label_x,
+                        label_y,
+                        method,
+                        name,
+                        room,
+                        (x_canvas, label_y),  # Elbow at same y as label
+                    )
+                    label_data.append(entry)
 
     print(f"Calculated {len(label_data)} label positions")
 
-    # Draw lines
-    for _person_id, x, y, label_x, label_y, _method, _name, _room in label_data:
-        dx = label_x - x
-        dy = label_y - y
-        distance_actual = math.sqrt(dx * dx + dy * dy)
-        if distance_actual > 0:
-            edge_x = x + (dx / distance_actual) * 48
-            edge_y = y + (dy / distance_actual) * 48
-            draw.line([(edge_x, edge_y), (label_x, label_y)], fill=(0, 47, 95, 200), width=6)
+    # Draw lines (supporting both straight and elbow/bent lines)
+    line_color = (0, 47, 95, 200)
+    line_width = 6
+    for entry in label_data:
+        _person_id, x, y, label_x, label_y, _method, _name, _room, elbow = entry
+        if elbow is not None:
+            # Draw bent line: employee -> elbow -> label
+            elbow_x, elbow_y = elbow
+            # First segment: from edge of profile picture to elbow
+            dx1 = elbow_x - x
+            dy1 = elbow_y - y
+            dist1 = math.sqrt(dx1 * dx1 + dy1 * dy1)
+            if dist1 > 0:
+                edge_x = x + (dx1 / dist1) * 48
+                edge_y = y + (dy1 / dist1) * 48
+                draw.line([(edge_x, edge_y), (elbow_x, elbow_y)], fill=line_color, width=line_width)
+            # Second segment: from elbow to label
+            draw.line([(elbow_x, elbow_y), (label_x, label_y)], fill=line_color, width=line_width)
+        else:
+            # Straight line
+            dx = label_x - x
+            dy = label_y - y
+            distance_actual = math.sqrt(dx * dx + dy * dy)
+            if distance_actual > 0:
+                edge_x = x + (dx / distance_actual) * 48
+                edge_y = y + (dy / distance_actual) * 48
+                draw.line([(edge_x, edge_y), (label_x, label_y)], fill=line_color, width=line_width)
 
     # Draw profile pictures
-    for person_id, x, y, _label_x, _label_y, _method, _name, _room in label_data:
+    for entry in label_data:
+        person_id, x, y, _label_x, _label_y, _method, _name, _room, _elbow = entry
         pic_path = os.path.join(script_dir, "profile_pictures", f"{person_id}.jpg")
         if os.path.exists(pic_path):
             try:
@@ -536,7 +880,8 @@ def main(employee_json, output_png, title=None):
                 print(f"Error loading profile for {person_id}: {e}")
 
     # Draw labels
-    for _person_id, _x, _y, label_x, label_y, _method, name, room in label_data:
+    for entry in label_data:
+        _person_id, _x, _y, label_x, label_y, _method, name, room, _elbow = entry
         name_bbox = draw.textbbox((0, 0), name, font=font_name)
         name_width = name_bbox[2] - name_bbox[0]
         name_height = name_bbox[3] - name_bbox[1]

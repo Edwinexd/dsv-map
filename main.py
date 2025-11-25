@@ -130,6 +130,14 @@ for emp in all_employees:
 
 print(f"Positioned {len(employee_coords)} employees")
 
+# Add coordinates to employee records for use by create_tv
+for emp in all_employees:
+    person_id = emp["person_id"]
+    if person_id in employee_coords:
+        x, y, method, zone = employee_coords[person_id]
+        emp["x"] = x
+        emp["y"] = y
+
 # Create unified HTML
 html = """
 <!DOCTYPE html>

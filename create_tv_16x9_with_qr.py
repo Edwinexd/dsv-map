@@ -11,8 +11,6 @@ import os
 
 from PIL import Image, ImageDraw, ImageFont
 
-import clickmap_positions
-
 
 def main(employee_json, output_png, title=None):
     employee_file = employee_json
@@ -25,59 +23,74 @@ def main(employee_json, output_png, title=None):
     # Get script directory for loading resource files
     script_dir = os.path.dirname(os.path.abspath(__file__))
 
-    # Fetch positions from Clickmap (by person name)
-    print("Fetching positions from DSV Clickmap...")
-    clickmap_by_person = clickmap_positions.fetch_clickmap_positions_by_person()
-    print(f"  Found {len(clickmap_by_person)} occupied positions in Clickmap")
+    # Check if coordinates are pre-computed in the JSON (from main.py)
+    has_precomputed_coords = any("x" in emp and "y" in emp for emp in employees)
 
-    # Location overrides (user-submitted room changes)
-    location_overrides = {}
-    try:
-        location_overrides_file = os.path.join(script_dir, "data", "location_overrides.json")
-        with open(location_overrides_file) as f:
-            data = json.load(f)
-            location_overrides = {k: v for k, v in data.items() if not k.startswith("_")}
-    except FileNotFoundError:
-        pass
-
-    # Assign coordinates from Clickmap (by person name)
     employee_coords = {}
-    stats = {"clickmap": 0, "no_position": 0}
+    stats = {"placed": 0, "no_position": 0}
 
-    print(f"Processing {len(employees)} employees...")
+    if has_precomputed_coords:
+        # Use pre-computed coordinates from JSON
+        print("Using pre-computed coordinates from input data...")
+        for emp in employees:
+            person_id = emp["person_id"]
+            if "x" in emp and "y" in emp:
+                employee_coords[person_id] = (emp["x"], emp["y"], "precomputed", None)
+                stats["placed"] += 1
+            else:
+                stats["no_position"] += 1
+    else:
+        # Fallback: fetch from Clickmap (for standalone usage)
+        import clickmap_positions
 
-    for emp in employees:
-        person_id = emp["person_id"]
-        name = emp["name"]
+        print("Fetching positions from DSV Clickmap...")
+        clickmap_by_person = clickmap_positions.fetch_clickmap_positions_by_person()
+        print(f"  Found {len(clickmap_by_person)} occupied positions in Clickmap")
 
-        # Look up position in Clickmap by person name (with fuzzy matching)
-        matched = False
-        for clickmap_name, (x, y, place_name) in clickmap_by_person.items():
-            if clickmap_positions.names_match(name, clickmap_name):
-                emp["room"] = place_name  # Update room from clickmap
-                employee_coords[person_id] = (x, y, "clickmap", None)
-                stats["clickmap"] += 1
-                matched = True
-                break
-        if not matched:
-            stats["no_position"] += 1
+        # Location overrides (user-submitted room changes)
+        location_overrides = {}
+        try:
+            location_overrides_file = os.path.join(script_dir, "data", "location_overrides.json")
+            with open(location_overrides_file) as f:
+                data = json.load(f)
+                location_overrides = {k: v for k, v in data.items() if not k.startswith("_")}
+        except FileNotFoundError:
+            pass
 
-    # Apply location overrides (these take precedence)
-    clickmap_pos = clickmap_positions.fetch_clickmap_positions()
-    for emp in employees:
-        person_id = emp["person_id"]
-        if person_id in location_overrides:
-            override_room = location_overrides[person_id]
-            emp["room"] = override_room
-            if override_room in clickmap_pos:
-                x, y = clickmap_pos[override_room]
-                employee_coords[person_id] = (x, y, "clickmap", None)
-                if person_id not in employee_coords:
-                    stats["clickmap"] += 1
-                    stats["no_position"] -= 1
-                print(f"Applied override for {emp['name']}: {override_room}")
+        print(f"Processing {len(employees)} employees...")
 
-    print(f"Placed {stats['clickmap']}/{len(employees)} employees")
+        for emp in employees:
+            person_id = emp["person_id"]
+            name = emp["name"]
+
+            # Look up position in Clickmap by person name (with fuzzy matching)
+            matched = False
+            for clickmap_name, (x, y, place_name) in clickmap_by_person.items():
+                if clickmap_positions.names_match(name, clickmap_name):
+                    emp["room"] = place_name  # Update room from clickmap
+                    employee_coords[person_id] = (x, y, "clickmap", None)
+                    stats["placed"] += 1
+                    matched = True
+                    break
+            if not matched:
+                stats["no_position"] += 1
+
+        # Apply location overrides (these take precedence)
+        clickmap_pos = clickmap_positions.fetch_clickmap_positions()
+        for emp in employees:
+            person_id = emp["person_id"]
+            if person_id in location_overrides:
+                override_room = location_overrides[person_id]
+                emp["room"] = override_room
+                if override_room in clickmap_pos:
+                    x, y = clickmap_pos[override_room]
+                    employee_coords[person_id] = (x, y, "clickmap", None)
+                    if person_id not in employee_coords:
+                        stats["placed"] += 1
+                        stats["no_position"] -= 1
+                    print(f"Applied override for {emp['name']}: {override_room}")
+
+    print(f"Placed {stats['placed']}/{len(employees)} employees")
 
     # Spread out overlapping employees
     print("\nSpreading out overlapping employees...")
@@ -241,7 +254,7 @@ def main(employee_json, output_png, title=None):
 
     # Add statistics (smaller font, single line)
     stats_y = qr_y + qr_size + 230
-    total_placed = stats["clickmap"]
+    total_placed = stats["placed"]
 
     stats_text = f"({total_placed} out of {len(employees)} displayed)"
     stats_bbox = draw.textbbox((0, 0), stats_text, font=font_name)
@@ -967,7 +980,7 @@ def main(employee_json, output_png, title=None):
 
     print("\nStats:")
     print(f"  Total employees: {len(employees)}")
-    print(f"  Placed on map: {stats['clickmap']}")
+    print(f"  Placed on map: {stats['placed']}")
 
 
 if __name__ == "__main__":

@@ -4,11 +4,11 @@
 
 ## Project Overview
 
-This project generates interactive HTML maps and 16:9 TV displays showing DSV staff locations on a floor plan. It scrapes employee data from Daisy (DSV's internal system), positions them on a floor plan using multiple methods, and generates both interactive web maps and TV-optimized displays with QR codes.
+This project generates interactive HTML maps and 16:9 TV displays showing DSV staff locations on a floor plan. It scrapes employee data from Daisy (DSV's internal system), fetches positions from DSV Clickmap, and generates both interactive web maps and TV-optimized displays with QR codes.
 
 **Key Features:**
 - Scrapes employee data and profile pictures from Daisy
-- Positions employees using OCR-detected rooms, interpolation, or zones
+- Fetches employee positions from DSV Clickmap service
 - Generates interactive HTML maps with search and filtering
 - Creates 16:9 TV displays with QR codes for location updates
 - Automated daily builds via GitHub Actions
@@ -21,37 +21,45 @@ This project generates interactive HTML maps and 16:9 TV displays showing DSV st
 1. **Scraping** → `get_all_dsv_employees.py` scrapes employee data from Daisy (including units via dsv-wrapper)
 2. **Pictures** → `download_all_dsv_pictures.py` downloads profile pictures
 3. **Name Fixing** → `fix_all_dsv_names.py` cleans up employee names
-4. **Map Generation** → `main.py` generates interactive HTML maps
-5. **TV Images** → `create_tv_16x9_with_qr.py` creates TV-optimized displays
-6. **Upload** → `upload_and_add_to_show.py` uploads to ACT Lab display system
+4. **Positions** → `clickmap_positions.py` fetches positions from DSV Clickmap service
+5. **Map Generation** → `main.py` generates interactive HTML maps
+6. **TV Images** → `create_tv_16x9_with_qr.py` creates TV-optimized displays
+7. **Upload** → `upload_and_add_to_show.py` uploads to ACT Lab display system
 
 ### Authentication
 
 - All authentication is handled by the `dsv-wrapper` library
 - `AsyncDaisyClient` for Daisy access (employee data, profile pictures)
+- `ClickmapClient` for DSV Clickmap access (employee positions)
 - `ACTLabClient` for ACT Lab display system uploads
 - No manual cookie management needed - dsv-wrapper handles sessions internally
-- **IMPORTANT:** This project only uses Daisy and ACT Lab systems
+- **IMPORTANT:** This project uses Daisy, Clickmap, and ACT Lab systems
 
 ### Positioning System
 
-Employees are positioned on the floor plan using these methods (in order of preference):
+Employees are positioned on the floor plan using:
 
-1. **Location Overrides** - User-submitted corrections via GitHub Issues (stored in `data/location_overrides.json`)
-2. **OCR Rooms** - Exact room coordinates detected from floor plan (stored in `data/room_positions_easyocr.json`)
-3. **Interpolated** - Calculated positions between known rooms for same floor/prefix
-4. **Zone-based** - Special room format like "2:X" positions in predefined zones (stored in `data/zone_centers.json`)
+1. **Location Overrides** - User-submitted corrections via GitHub Issues (stored in `data/location_overrides.json`) - takes precedence
+2. **DSV Clickmap** - All positions fetched from the Clickmap service via `ClickmapClient`
 
-**Note:** Manual positions (`manual_positions.json`) were removed - all manual corrections now go through location overrides.
+The Clickmap service provides positions for all rooms including zone-based positions (like "2:X", "6:7").
+
+**Name Matching:**
+- Employees are matched by name between Daisy and Clickmap
+- Fuzzy matching handles middle names (e.g., "Jozef Zbigniew Swiatycki" matches "Jozef Swiatycki")
+- Matching logic: first name + last name must match
+
+**Coordinate Conversion:**
+- Clickmap uses Leaflet coordinates (lat 0-10, lng 0-10)
+- Floor plan is 3056×3056 pixels
+- Conversion: `x = longitude * 305.6`, `y = (10 - latitude) * 305.6`
 
 ## File Organization
 
 ```
 assets/          - Image assets (floor plan, QR codes, logos)
 data/            - Configuration and data files
-  ├── room_positions_easyocr.json    - OCR-detected room coordinates
-  ├── location_overrides.json        - User-submitted location updates
-  └── zone_centers.json              - Zone center coordinates
+  └── location_overrides.json  - User-submitted location updates
 output/          - Generated files (gitignored)
   ├── html/      - Interactive HTML maps
   └── tv/        - TV display images
@@ -62,6 +70,7 @@ profile_pictures/ - Downloaded employee photos (gitignored)
 ### Key Scripts
 
 - **main.py** - Main orchestrator, runs all steps and generates HTML map
+- **clickmap_positions.py** - Utility module for fetching positions from DSV Clickmap
 - **get_all_dsv_employees.py** - Scrapes employee data (including units) using dsv-wrapper
 - **download_all_dsv_pictures.py** - Downloads profile pictures using dsv-wrapper
 - **fix_all_dsv_names.py** - Cleans up employee names
@@ -70,9 +79,7 @@ profile_pictures/ - Downloaded employee photos (gitignored)
 
 ### Data Files
 
-- **data/room_positions_easyocr.json** - OCR-detected room coordinates on floor plan
 - **data/location_overrides.json** - User-submitted location corrections (GitHub automation)
-- **data/zone_centers.json** - Zone center coordinates for zone-based positioning
 
 ### Assets
 
@@ -92,7 +99,7 @@ profile_pictures/ - Downloaded employee photos (gitignored)
 4. Workflow creates Pull Request with changes
 5. Once PR is merged, next map generation applies the update
 
-**Important:** Location overrides take precedence over all other positioning methods.
+**Important:** Location overrides take precedence over Clickmap positions.
 
 ## QR Code System
 
@@ -130,10 +137,6 @@ profile_pictures/ - Downloaded employee photos (gitignored)
 2. Update scripts to reference `assets/filename.ext`
 3. Update this CLAUDE.md file
 
-### Updating Zone Coordinates
-
-Edit `data/zone_centers.json` - no code changes needed!
-
 ## Important Notes & Gotchas
 
 ### Error Handling
@@ -146,18 +149,14 @@ Edit `data/zone_centers.json` - no code changes needed!
 - Always use `os.path.join(script_dir, "assets", "file.png")` for assets
 - Never hardcode paths relative to current directory
 
-### Zone Coordinate Format
-- In JSON: `"1": [1521, 1064]` (string key, list of ints)
-- In Python: `{1: (1521, 1064)}` (int key, tuple of ints)
-- Conversion: `{int(k): tuple(v) for k, v in data.items() if not k.startswith("_")}`
-
 ### Authentication & dsv-wrapper
 - All authentication handled by `dsv-wrapper` library (https://github.com/Edwinexd/dsv-wrapper)
 - `AsyncDaisyClient` provides async access to Daisy with automatic authentication
+- `ClickmapClient` provides sync access to DSV Clickmap with automatic authentication
 - `ACTLabClient` provides sync access to ACT Lab with automatic authentication
 - Credentials from environment variables (`SU_USERNAME` and `SU_PASSWORD`)
 - No manual session/cookie management needed
-- **IMPORTANT:** dsv-wrapper provides all employee data including units - no manual scraping or cookie handling ever needed
+- **IMPORTANT:** dsv-wrapper provides all employee data including units and positions - no manual scraping or coordinate handling needed
 
 ### Dependencies
 - **DO NOT** add `qrcode` library - QR codes are pre-generated images
@@ -186,8 +185,9 @@ This will:
 1. Scrape employee data (including units via dsv-wrapper)
 2. Download profile pictures
 3. Fix employee names
-4. Generate HTML map
-5. Generate TV images for all units
+4. Fetch positions from DSV Clickmap
+5. Generate HTML map
+6. Generate TV images for all units
 
 **Output locations:**
 - `output/html/staff_map_unified.html` - Interactive map

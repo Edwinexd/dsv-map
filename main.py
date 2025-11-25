@@ -5,18 +5,19 @@ This script:
 1. Scrapes employee data from Daisy (including units)
 2. Downloads profile pictures
 3. Fixes employee names
-4. Generates unified interactive HTML maps
-5. Generates TV-optimized PNG images
+4. Fetches positions from DSV Clickmap
+5. Generates unified interactive HTML maps
+6. Generates TV-optimized PNG images
 
 Usage: python3 main.py
 """
 
 import asyncio
 import json
-import math
 import os
 import shutil
 
+import clickmap_positions
 import create_tv_16x9_with_qr
 import download_all_dsv_pictures
 import fix_all_dsv_names
@@ -85,13 +86,10 @@ for emp in all_employees:
         all_units_set.update(units)
 all_units = sorted(all_units_set)
 
-with open("data/room_positions_easyocr.json", encoding="utf-8") as f:
-    ocr_rooms = json.load(f)
-
-# Zone coordinates
-with open("data/zone_centers.json", encoding="utf-8") as f:
-    zone_data = json.load(f)
-    zone_centers = {int(k): tuple(v) for k, v in zone_data.items() if not k.startswith("_")}
+# Fetch positions from Clickmap (by person name)
+print("Fetching positions from DSV Clickmap...")
+clickmap_by_person = clickmap_positions.fetch_clickmap_positions_by_person()
+print(f"  Found {len(clickmap_by_person)} occupied positions in Clickmap")
 
 # Location overrides (user-submitted room changes)
 location_overrides = {}
@@ -102,112 +100,33 @@ try:
 except FileNotFoundError:
     pass
 
+# Assign coordinates from Clickmap (by person name)
+employee_coords = {}
 
-def get_zone_from_special_room(room):
-    if not room or not isinstance(room, str):
-        return None
-    if ":" in room:
-        try:
-            zone_num = int(room.split(":")[0])
-            return zone_num if 1 <= zone_num <= 8 else None
-        except (ValueError, IndexError):
-            return None
-    return None
+for emp in all_employees:
+    person_id = emp["person_id"]
+    name = emp["name"]
 
-
-def interpolate_room_position(room_number, known_rooms):
-    if not room_number or not isinstance(room_number, str):
-        return None
-    if ":" in room_number:
-        return None
-    try:
-        room_num = int(room_number)
-    except ValueError:
-        return None
-
-    prefix = room_number[:2]
-    same_prefix_rooms = {}
-
-    for known_room, (x, y) in known_rooms.items():
-        if known_room.startswith(prefix) and len(known_room) == 5:
-            try:
-                same_prefix_rooms[int(known_room)] = (x, y)
-            except ValueError:
-                pass
-
-    if len(same_prefix_rooms) < 2:
-        return None
-
-    sorted_rooms = sorted(same_prefix_rooms.keys())
-    lower = None
-    upper = None
-
-    for known in sorted_rooms:
-        if known < room_num:
-            lower = known
-        elif known > room_num and upper is None:
-            upper = known
+    # Look up position in Clickmap by person name (with fuzzy matching)
+    matched = False
+    for clickmap_name, (x, y, place_name) in clickmap_by_person.items():
+        if clickmap_positions.names_match(name, clickmap_name):
+            emp["room"] = place_name  # Update room from clickmap
+            employee_coords[person_id] = (x, y, "clickmap", None)
+            matched = True
             break
 
-    if lower and upper:
-        x1, y1 = same_prefix_rooms[lower]
-        x2, y2 = same_prefix_rooms[upper]
-        ratio = (room_num - lower) / (upper - lower)
-        x = x1 + (x2 - x1) * ratio
-        y = y1 + (y2 - y1) * ratio
-        return (x, y, "interpolated")
-
-    return None
-
-
-# Apply location overrides to employee data
+# Apply location overrides (these take precedence)
+clickmap_pos = clickmap_positions.fetch_clickmap_positions()
 for emp in all_employees:
     person_id = emp["person_id"]
     if person_id in location_overrides:
-        emp["room"] = location_overrides[person_id]
         override_room = location_overrides[person_id]
-        print(f"Applied location override for {emp['name']} (ID: {person_id}): {override_room}")
-
-# Assign coordinates
-employee_coords = {}
-employees_by_zone = {}
-
-for emp in all_employees:
-    room = emp.get("room")
-    person_id = emp["person_id"]
-
-    if not room or room == "None":
-        continue
-
-    zone = get_zone_from_special_room(room)
-    if zone:
-        if zone not in employees_by_zone:
-            employees_by_zone[zone] = []
-        employees_by_zone[zone].append((emp, room))
-        continue
-
-    if room in ocr_rooms:
-        x, y = ocr_rooms[room]
-        employee_coords[person_id] = (x, y, "ocr", None)
-        continue
-
-    result = interpolate_room_position(room, ocr_rooms)
-    if result:
-        x, y, method = result
-        employee_coords[person_id] = (x, y, method, None)
-        continue
-
-# Place zone-based employees
-for zone, emps_and_rooms in employees_by_zone.items():
-    center_x, center_y = zone_centers[zone]
-    num_emps = len(emps_and_rooms)
-    radius = 150
-
-    for i, (emp, _room) in enumerate(emps_and_rooms):
-        angle = (2 * math.pi * i) / num_emps if num_emps > 1 else 0
-        x = center_x + radius * math.cos(angle)
-        y = center_y + radius * math.sin(angle)
-        employee_coords[emp["person_id"]] = (x, y, "zone", zone)
+        emp["room"] = override_room
+        if override_room in clickmap_pos:
+            x, y = clickmap_pos[override_room]
+            employee_coords[person_id] = (x, y, "clickmap", None)
+            print(f"Applied location override for {emp['name']} (ID: {person_id}): {override_room}")
 
 print(f"Positioned {len(employee_coords)} employees")
 
@@ -339,14 +258,8 @@ html = """
             border-width: 4px;
             box-shadow: 0 0 20px rgba(255, 107, 53, 0.8);
         }
-        .staff-marker.ocr img {
+        .staff-marker.clickmap img {
             border-style: solid;
-        }
-        .staff-marker.interpolated img {
-            border-style: dashed;
-        }
-        .staff-marker.zone img {
-            border-style: dotted;
         }
         .tooltip {
             position: fixed;
@@ -432,11 +345,7 @@ for emp in all_employees:
         x_percent = (x / img_width) * 100
         y_percent = (y / img_height) * 100
 
-        method_text = {
-            "ocr": "Exact position",
-            "interpolated": "Interpolated",
-            "zone": f"Zone {zone}",
-        }.get(method, "Estimated")
+        method_text = "Clickmap position"
 
         html += f"""
                 <div class="staff-marker {method}"

@@ -48,7 +48,6 @@ jobs:
 
       - name: Upload to ACT Lab display
         run: python3 upload_and_add_to_show.py
-        continue-on-error: true
 
       - name: List generated files
         run: |

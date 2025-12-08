@@ -80,6 +80,7 @@ profile_pictures/ - Downloaded employee photos (gitignored)
 - **fix_all_dsv_names.py** - Cleans up employee names
 - **create_tv_16x9_with_qr.py** - Generates 16:9 TV images with QR codes
 - **upload_and_add_to_show.py** - Uploads to ACT Lab display system using dsv-wrapper
+- **event_utils.py** - Loads active events and their profile processors dynamically
 
 ### Data Files
 
@@ -189,6 +190,40 @@ Seasonal decorations are loaded from `assets/events/<event_name>/`. Each event f
 | `align` | Text alignment: `left`, `center`, `right` | `left` |
 
 **Note:** Date ranges can wrap around year boundaries (e.g., Dec 15 - Jan 5).
+
+### Profile Processors
+
+Events can include a custom Python script to process profile pictures. This is used for seasonal effects like Santa hats during Christmas.
+
+**Config options:**
+
+| Field | Description |
+|-------|-------------|
+| `profile_processor` | Python script filename (e.g., `profile_processor.py`) |
+| `profile_processor_config` | Configuration dict passed to the processor |
+
+**Processor interface:** The script must implement a `process(image, config)` function:
+- `image`: PIL Image (RGBA)
+- `config`: dict from `profile_processor_config`
+- Returns: PIL Image (RGBA)
+
+**Example (Christmas Santa hats):**
+
+```json
+{
+  "profile_processor": "profile_processor.py",
+  "profile_processor_config": {
+    "enabled": true,
+    "file": "santa_hat.png",
+    "scale_factor": 1.3,
+    "vertical_offset": 0.15
+  }
+}
+```
+
+The Christmas event includes a profile processor that uses OpenCV Haar Cascade for face detection to add Santa hats. See `assets/events/christmas/profile_processor.py` for implementation details.
+
+**Integration:** Profile processors are loaded by `event_utils.py` and called from `main.py` and `create_tv_16x9_with_qr.py` when an active event has a `profile_processor` configured.
 
 ## Automation
 

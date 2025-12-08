@@ -13,6 +13,8 @@ from datetime import date
 
 from PIL import Image, ImageDraw, ImageFont
 
+import event_utils
+
 
 def main(employee_json, output_png, title=None):
     employee_file = employee_json
@@ -1017,6 +1019,7 @@ def main(employee_json, output_png, title=None):
                 draw.line([(edge_x, edge_y), (label_x, label_y)], fill=line_color, width=line_width)
 
     # Draw profile pictures
+    profile_positions = []  # Store positions for overlay rendering
     for entry in label_data:
         person_id, x, y, _label_x, _label_y, _method, _name, _room, _elbow = entry
         pic_path = os.path.join(script_dir, "profile_pictures", f"{person_id}.jpg")
@@ -1040,6 +1043,9 @@ def main(employee_json, output_png, title=None):
                 paste_x = int(x - border_size // 2)
                 paste_y = int(y - border_size // 2)
                 canvas.paste(border_img, (paste_x, paste_y), border_img)
+
+                # Store position for overlay rendering
+                profile_positions.append((pic_path, int(x), int(y), border_size))
             except OSError as e:
                 print(f"Error loading profile for {person_id}: {e}")
 
@@ -1073,6 +1079,14 @@ def main(employee_json, output_png, title=None):
         ]
         draw.rounded_rectangle(room_box, radius=8, fill=(255, 107, 53, 240))
         draw.text((label_x, room_y), room, fill=(255, 255, 255, 255), font=font_room)
+
+    # Draw event overlays (e.g., Santa hats) on top of everything
+    for pic_path, center_x, center_y, pic_size in profile_positions:
+        overlay = event_utils.get_tv_overlay_params(
+            pic_path, (center_x, center_y), (pic_size, pic_size)
+        )
+        if overlay:
+            canvas.paste(overlay["image"], (overlay["x"], overlay["y"]), overlay["image"])
 
     # Save
     canvas.save(output_file, "PNG")

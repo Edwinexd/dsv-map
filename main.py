@@ -20,9 +20,10 @@ import shutil
 import clickmap_positions
 import create_tv_16x9_with_qr
 import download_all_dsv_pictures
-import fix_all_dsv_names
 
 # Import the other scripts
+import event_utils
+import fix_all_dsv_names
 import get_all_dsv_employees
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -467,15 +468,32 @@ print("\nCopying assets to output directory...")
 # Copy floor plan
 shutil.copy2("assets/floor_plan.png", "output/html/floor_plan.png")
 
-# Copy profile pictures
+# Copy profile pictures (with event processing if active)
 output_pics_dir = "output/html/profile_pictures"
 os.makedirs(output_pics_dir, exist_ok=True)
 if os.path.exists("profile_pictures"):
+    has_processor = event_utils.has_active_profile_processor()
+    if has_processor:
+        print("🎄 Processing profile pictures with active event...")
+
     for pic_file in os.listdir("profile_pictures"):
         if pic_file.endswith((".jpg", ".png")):
-            shutil.copy2(
-                os.path.join("profile_pictures", pic_file), os.path.join(output_pics_dir, pic_file)
-            )
+            src_path = os.path.join("profile_pictures", pic_file)
+            dst_path = os.path.join(output_pics_dir, pic_file)
+
+            if has_processor:
+                processed = event_utils.process_profile_picture(src_path)
+                if processed:
+                    # Convert RGBA to RGB for JPEG (JPEG doesn't support alpha)
+                    if dst_path.lower().endswith(".jpg") and processed.mode == "RGBA":
+                        rgb_img = processed.convert("RGB")
+                        rgb_img.save(dst_path)
+                    else:
+                        processed.save(dst_path)
+                else:
+                    shutil.copy2(src_path, dst_path)
+            else:
+                shutil.copy2(src_path, dst_path)
 print("✅ Copied assets to output/html/")
 
 # Step 5: Generate TV images per unit (16:9 format with QR code)

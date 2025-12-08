@@ -3,6 +3,16 @@
   "start_day": 1,
   "end_month": 12,
   "end_day": 25,
+  "profile_processor": "profile_processor.py",
+  "profile_processor_config": {
+    "enabled": true,
+    "file": "santa_hat.png",
+    "scale_factor": 1.2,
+    "vertical_offset": 0.3,
+    "horizontal_offset": 0.0,
+    "min_neighbors": 5,
+    "detection_scale": 1.1
+  },
   "assets": [
     {
       "type": "image",

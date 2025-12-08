@@ -8,8 +8,8 @@
     "enabled": true,
     "file": "santa_hat.png",
     "scale_factor": 1.2,
-    "vertical_offset": 0.3,
-    "horizontal_offset": 0.0,
+    "vertical_offset": 0.35,
+    "horizontal_offset": 0.1,
     "min_neighbors": 5,
     "detection_scale": 1.1
   },

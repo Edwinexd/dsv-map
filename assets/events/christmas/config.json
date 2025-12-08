@@ -1,0 +1,39 @@
+{
+  "start_month": 12,
+  "start_day": 1,
+  "end_month": 12,
+  "end_day": 25,
+  "assets": [
+    {
+      "type": "image",
+      "file": "image.png",
+      "scale": 1.7,
+      "position": "bottom-left",
+      "padding": 30
+    },
+    {
+      "type": "message",
+      "texts": [
+        "Merry Christmas!",
+        "Happy Holidays!",
+        "Ho Ho Ho!",
+        "Glad Jul!",
+        "God Jul!",
+        "Frohe Weihnachten!",
+        "Joyeux Noel!",
+        "Feliz Navidad!",
+        "Buon Natale!",
+        "Warm Wishes!",
+        "Joy to DSV!",
+        "Peace & Joy!"
+      ],
+      "color": [178, 34, 34],
+      "font_size": 52,
+      "position": "bottom-left",
+      "padding": 30,
+      "offset_x": 253,
+      "offset_y": -792,
+      "align": "center"
+    }
+  ]
+}

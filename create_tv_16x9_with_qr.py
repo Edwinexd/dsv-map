@@ -8,6 +8,8 @@ import argparse
 import json
 import math
 import os
+import random
+from datetime import date
 
 from PIL import Image, ImageDraw, ImageFont
 
@@ -212,6 +214,105 @@ def main(employee_json, output_png, title=None):
         # Fallback to default
         print("Warning: Could not load any fonts, using default (size will be small)")
         return ImageFont.load_default()
+
+    # Load seasonal events from assets/events/
+    today = date.today()
+    events_dir = os.path.join(script_dir, "assets", "events")
+    if os.path.isdir(events_dir):
+        for event_name in os.listdir(events_dir):
+            event_path = os.path.join(events_dir, event_name)
+            config_path = os.path.join(event_path, "config.json")
+            if not os.path.isfile(config_path):
+                continue
+
+            try:
+                with open(config_path, encoding="utf-8") as f:
+                    config = json.load(f)
+
+                # Check if event is active
+                start = (config["start_month"], config["start_day"])
+                end = (config["end_month"], config["end_day"])
+                current = (today.month, today.day)
+
+                if start <= end:
+                    is_active = start <= current <= end
+                else:
+                    # Wraps around year (e.g., Dec 15 - Jan 5)
+                    is_active = current >= start or current <= end
+
+                if not is_active:
+                    continue
+
+                def get_position(position, padding, width, height):
+                    """Calculate x, y coordinates for an asset based on position string."""
+                    offset_x, offset_y = 0, 0
+                    if position == "bottom-left":
+                        offset_x = padding
+                        offset_y = target_height - height - padding
+                    elif position == "bottom-right":
+                        offset_x = map_area_width - width - padding
+                        offset_y = target_height - height - padding
+                    elif position == "top-left":
+                        offset_x = padding
+                        offset_y = padding
+                    elif position == "top-right":
+                        offset_x = map_area_width - width - padding
+                        offset_y = padding
+                    return offset_x, offset_y
+
+                # Load event assets
+                assets = config.get("assets", [])
+                for asset in assets:
+                    asset_type = asset.get("type", "image")
+                    padding = asset.get("padding", 30)
+                    position = asset.get("position", "bottom-left")
+
+                    if asset_type == "image":
+                        image_path = os.path.join(event_path, asset.get("file", "image.png"))
+                        event_img = Image.open(image_path).convert("RGBA")
+
+                        asset_scale = asset.get("scale", 1.0)
+                        img_width = int(event_img.width * asset_scale)
+                        img_height = int(event_img.height * asset_scale)
+                        event_img = event_img.resize(
+                            (img_width, img_height), Image.Resampling.LANCZOS
+                        )
+
+                        img_x, img_y = get_position(position, padding, img_width, img_height)
+                        img_x += asset.get("offset_x", 0)
+                        img_y += asset.get("offset_y", 0)
+                        canvas.paste(event_img, (img_x, img_y), event_img)
+                        print(f"Added {event_name} image: {asset.get('file', 'image.png')}")
+
+                    elif asset_type == "message":
+                        texts = asset.get("texts", [])
+                        if not texts:
+                            continue
+                        text = random.choice(texts)
+                        font_size = asset.get("font_size", 36)
+                        color = tuple(asset.get("color", [0, 0, 0]))
+                        font = load_font(font_size)
+
+                        text_bbox = draw.textbbox((0, 0), text, font=font)
+                        text_width = text_bbox[2] - text_bbox[0]
+                        text_height = text_bbox[3] - text_bbox[1]
+
+                        text_x, text_y = get_position(position, padding, text_width, text_height)
+                        text_x += asset.get("offset_x", 0)
+                        text_y += asset.get("offset_y", 0)
+
+                        # Handle text alignment
+                        align = asset.get("align", "left")
+                        if align == "center":
+                            text_x -= text_width // 2
+                        elif align == "right":
+                            text_x -= text_width
+
+                        draw.text((text_x, text_y), text, fill=color, font=font)
+                        print(f"Added {event_name} message: {text}")
+
+            except (OSError, KeyError, json.JSONDecodeError) as e:
+                print(f"Warning: Could not load event {event_name}: {e}")
 
     font_title = load_font(80)
     font_info = load_font(50)

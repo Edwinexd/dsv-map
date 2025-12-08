@@ -58,6 +58,10 @@ The Clickmap service provides positions for all rooms including zone-based posit
 
 ```
 assets/          - Image assets (floor plan, QR codes, logos)
+  └── events/    - Seasonal event decorations (see Event System below)
+      └── <event_name>/
+          ├── config.json  - Event configuration
+          └── image.png    - Event image
 data/            - Configuration and data files
   └── location_overrides.json  - User-submitted location updates
 output/          - Generated files (gitignored)
@@ -107,6 +111,84 @@ profile_pictures/ - Downloaded employee photos (gitignored)
 - The `qrcode` library dependency was removed
 - QR codes are loaded from `assets/` directory
 - To update QR codes, replace the PNG files directly
+
+## Event System
+
+Seasonal decorations are loaded from `assets/events/<event_name>/`. Each event folder contains:
+
+- **config.json** - Event configuration
+- **Image files** - Decoration images (if any)
+
+### Adding a New Event
+
+1. Create folder: `assets/events/<event_name>/`
+2. Add image file(s) if needed
+3. Create `config.json`:
+
+```json
+{
+  "start_month": 12,
+  "start_day": 1,
+  "end_month": 12,
+  "end_day": 25,
+  "assets": [
+    {
+      "type": "image",
+      "file": "tree.png",
+      "scale": 1.7,
+      "position": "bottom-left",
+      "padding": 30
+    },
+    {
+      "type": "message",
+      "texts": ["Merry Christmas!", "God Jul!"],
+      "color": [178, 34, 34],
+      "font_size": 36,
+      "position": "bottom-left",
+      "padding": 30,
+      "offset_y": -50
+    }
+  ]
+}
+```
+
+### Config Options
+
+**Event-level (required):**
+
+| Field | Description |
+|-------|-------------|
+| `start_month`, `start_day` | Event start date (inclusive) |
+| `end_month`, `end_day` | Event end date (inclusive) |
+| `assets` | Array of asset objects |
+
+**Shared asset options:**
+
+| Field | Description | Default |
+|-------|-------------|---------|
+| `type` | `image` or `message` | `image` |
+| `position` | `bottom-left`, `bottom-right`, `top-left`, `top-right` | `bottom-left` |
+| `padding` | Pixels from edge | `30` |
+| `offset_x` | Additional X offset | `0` |
+| `offset_y` | Additional Y offset | `0` |
+
+**Image-specific options:**
+
+| Field | Description | Default |
+|-------|-------------|---------|
+| `file` | Image filename | `image.png` |
+| `scale` | Image scale factor | `1.0` |
+
+**Message-specific options:**
+
+| Field | Description | Default |
+|-------|-------------|---------|
+| `texts` | Array of messages (one chosen randomly) | Required |
+| `color` | RGB array | `[0, 0, 0]` |
+| `font_size` | Font size in pixels | `36` |
+| `align` | Text alignment: `left`, `center`, `right` | `left` |
+
+**Note:** Date ranges can wrap around year boundaries (e.g., Dec 15 - Jan 5).
 
 ## Automation
 

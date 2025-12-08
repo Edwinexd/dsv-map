@@ -45,6 +45,9 @@ profiles/
 # Cookie cache
 .cookie_cache/
 
+# Clickmap reference image
+assets/karta_plan3_clickmap.png
+
 # Keep these folders and their contents:
 # - data/        (configuration and data files)
 # - assets/      (images, PDFs, static resources)

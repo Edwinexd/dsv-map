@@ -79,7 +79,8 @@ profile_pictures/ - Downloaded employee photos (gitignored)
 - **download_all_dsv_pictures.py** - Downloads profile pictures using dsv-wrapper
 - **fix_all_dsv_names.py** - Cleans up employee names
 - **create_tv_16x9_with_qr.py** - Generates 16:9 TV images with QR codes
-- **upload_and_add_to_show.py** - Uploads to ACT Lab display system using dsv-wrapper
+- **upload_and_add_to_show.py** - Uploads to ACT Lab display system using dsv-wrapper (manual use)
+- **ci_slide_manager.py** - Manages CI build progress indicator on ACT Lab display (used by GitHub Actions)
 - **event_utils.py** - Loads active events and their profile processors dynamically
 
 ### Data Files
@@ -93,6 +94,7 @@ profile_pictures/ - Downloaded employee photos (gitignored)
 - **assets/repo_qr.png** - QR code linking to repository
 - **assets/SU_logotyp_Landscape_Invert_1000px.png** - Stockholm University logo
 - **assets/Orienteringskarta_plan3.pdf** - Original floor plan PDF
+- **assets/ci-build-in-progress.png** - CI build progress indicator for ACT Lab display
 
 ## Location Override System
 
@@ -229,9 +231,17 @@ The Christmas event includes a profile processor that uses OpenCV Haar Cascade f
 
 ### Daily Build (2:00 AM UTC)
 - `.github/workflows/build-release.yml`
+- Shows "Build in Progress" indicator on ACT Lab display during build
 - Runs `main.py` to regenerate all maps
-- Uploads ACT Lab map to display system
+- On success: uploads new map, removes progress indicator
+- On failure: removes progress indicator, keeps previous map as fallback (CI still fails)
 - Requires `SU_USERNAME` and `SU_PASSWORD` secrets
+
+**CI Slide Management Flow:**
+1. `ci_slide_manager.py start` - Disables auto-delete on current slide, uploads progress indicator
+2. Build runs (`main.py`)
+3. On success: `ci_slide_manager.py success` - Uploads new map, removes old slides
+4. On failure: `ci_slide_manager.py failure` - Removes progress indicator, old slide remains
 
 ### Location Update Requests
 - `.github/workflows/location-update.yml`

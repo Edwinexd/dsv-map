@@ -43,13 +43,23 @@ jobs:
           SU_PASSWORD=$SU_PASSWORD
           EOF
 
+      - name: Show CI progress on display
+        run: python3 ci_slide_manager.py start
+
       - name: Run build process
+        id: build
         run: python3 main.py
 
       - name: Upload to ACT Lab display
-        run: python3 upload_and_add_to_show.py
+        if: success()
+        run: python3 ci_slide_manager.py success
+
+      - name: Restore previous slide on failure
+        if: failure()
+        run: python3 ci_slide_manager.py failure
 
       - name: List generated files
+        if: success()
         run: |
           echo "Generated files:"
           find output -type f

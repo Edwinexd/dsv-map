@@ -1,0 +1,100 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2560 1440">
+  <defs>
+    <!-- TV static noise pattern -->
+    <pattern id="noise" x="0" y="0" width="150" height="150" patternUnits="userSpaceOnUse">
+      <rect width="150" height="150" fill="#1a1a2e"/>
+      <circle cx="15" cy="22" r="1.5" fill="#333"/>
+      <circle cx="45" cy="12" r="2" fill="#444"/>
+      <circle cx="82" cy="33" r="1.5" fill="#2a2a4a"/>
+      <circle cx="117" cy="18" r="3" fill="#333"/>
+      <circle cx="138" cy="52" r="1.5" fill="#444"/>
+      <circle cx="22" cy="67" r="2" fill="#2a2a4a"/>
+      <circle cx="63" cy="78" r="1.5" fill="#333"/>
+      <circle cx="102" cy="72" r="3" fill="#444"/>
+      <circle cx="127" cy="93" r="1.5" fill="#2a2a4a"/>
+      <circle cx="33" cy="117" r="2" fill="#333"/>
+      <circle cx="72" cy="127" r="1.5" fill="#444"/>
+      <circle cx="108" cy="138" r="3" fill="#2a2a4a"/>
+      <circle cx="8" cy="142" r="1.5" fill="#333"/>
+      <circle cx="142" cy="132" r="2" fill="#444"/>
+    </pattern>
+
+    <!-- Scanline effect -->
+    <pattern id="scanlines" x="0" y="0" width="4" height="4" patternUnits="userSpaceOnUse">
+      <rect width="4" height="2" fill="transparent"/>
+      <rect y="2" width="4" height="2" fill="rgba(0,0,0,0.12)"/>
+    </pattern>
+
+    <!-- Glow filter for error icon -->
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="6" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- Vignette gradient -->
+    <radialGradient id="radialVignette" cx="50%" cy="50%" r="70%">
+      <stop offset="0%" stop-color="transparent"/>
+      <stop offset="100%" stop-color="rgba(0,0,0,0.6)"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Background with noise -->
+  <rect width="2560" height="1440" fill="url(#noise)"/>
+
+  <!-- Vignette effect -->
+  <rect width="2560" height="1440" fill="url(#radialVignette)"/>
+
+  <!-- Main content group -->
+  <g>
+
+    <!-- Error icon - broken circle with X -->
+    <g transform="translate(1280, 450)" filter="url(#glow)">
+      <!-- Outer broken circle -->
+      <path d="M -100 0 A 100 100 0 0 1 0 -100" stroke="#ff4757" stroke-width="10" fill="none" stroke-linecap="round"/>
+      <path d="M 0 -100 A 100 100 0 0 1 100 0" stroke="#ff4757" stroke-width="10" fill="none" stroke-linecap="round"/>
+      <path d="M 100 0 A 100 100 0 0 1 0 100" stroke="#ff4757" stroke-width="10" fill="none" stroke-linecap="round"/>
+      <path d="M 0 100 A 100 100 0 0 1 -100 0" stroke="#ff4757" stroke-width="10" fill="none" stroke-linecap="round"/>
+
+      <!-- X mark -->
+      <line x1="-40" y1="-40" x2="40" y2="40" stroke="#ff4757" stroke-width="12" stroke-linecap="round"/>
+      <line x1="40" y1="-40" x2="-40" y2="40" stroke="#ff4757" stroke-width="12" stroke-linecap="round"/>
+    </g>
+
+    <!-- Main error message -->
+    <text x="1280" y="650" text-anchor="middle" font-family="'Arial Black', 'Helvetica Neue', sans-serif" font-size="72" fill="#ffffff" letter-spacing="6">
+      NO BUILD AVAILABLE
+    </text>
+
+    <!-- Divider line -->
+    <line x1="980" y1="690" x2="1580" y2="690" stroke="#444455" stroke-width="2"/>
+
+    <!-- Sub message -->
+    <text x="1280" y="770" text-anchor="middle" font-family="'Segoe UI', Arial, sans-serif" font-size="32" fill="#888899">
+      Latest CI build failed or unavailable
+    </text>
+
+    <!-- Status acknowledgment -->
+    <g transform="translate(1280, 870)">
+      <circle cx="-140" cy="-8" r="10" fill="#f0932b"/>
+      <text x="-115" y="0" font-family="'Segoe UI', Arial, sans-serif" font-size="28" fill="#aaaaaa">
+        We're aware of the issue
+      </text>
+    </g>
+
+    <!-- Contact email -->
+    <text x="1280" y="970" text-anchor="middle" font-family="'Courier New', monospace" font-size="26" fill="#6699cc">
+      lambda@dsv.su.se
+    </text>
+
+  </g>
+
+  <!-- Scanlines overlay -->
+  <rect width="2560" height="1440" fill="url(#scanlines)" opacity="0.4"/>
+
+  <!-- CRT edge darkening -->
+  <rect width="2560" height="1440" fill="url(#radialVignette)"/>
+
+</svg>

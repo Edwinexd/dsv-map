@@ -1,0 +1,42 @@
+{
+  "start_month": 6,
+  "start_day": 18,
+  "end_month": 6,
+  "end_day": 26,
+  "profile_processor": "profile_processor.py",
+  "profile_processor_config": {
+    "enabled": true,
+    "file": "flower_crown.png",
+    "scale_factor": 1.3,
+    "vertical_offset": 0.45,
+    "horizontal_offset": 0.0,
+    "min_neighbors": 5,
+    "detection_scale": 1.1
+  },
+  "assets": [
+    {
+      "type": "image",
+      "file": "image.png",
+      "scale": 0.85,
+      "position": "bottom-left",
+      "padding": 30
+    },
+    {
+      "type": "message",
+      "texts": [
+        "Glad Midsommar!",
+        "Happy Midsummer!",
+        "Skål Midsommar!",
+        "Ljus och fest!",
+        "Sommar är här!"
+      ],
+      "color": [34, 139, 34],
+      "font_size": 52,
+      "position": "bottom-left",
+      "padding": 30,
+      "offset_x": 253,
+      "offset_y": -530,
+      "align": "center"
+    }
+  ]
+}

@@ -1,0 +1,42 @@
+{
+  "start_month": 4,
+  "start_day": 1,
+  "end_month": 4,
+  "end_day": 21,
+  "profile_processor": "profile_processor.py",
+  "profile_processor_config": {
+    "enabled": true,
+    "file": "bunny_ears.png",
+    "scale_factor": 1.4,
+    "vertical_offset": 0.5,
+    "horizontal_offset": 0.0,
+    "min_neighbors": 5,
+    "detection_scale": 1.1
+  },
+  "assets": [
+    {
+      "type": "image",
+      "file": "image.png",
+      "scale": 0.85,
+      "position": "bottom-left",
+      "padding": 30
+    },
+    {
+      "type": "message",
+      "texts": [
+        "Glad Påsk!",
+        "Happy Easter!",
+        "Påsk är här!",
+        "Spring is here!",
+        "Glada Påskdagar!"
+      ],
+      "color": [178, 100, 22],
+      "font_size": 52,
+      "position": "bottom-left",
+      "padding": 30,
+      "offset_x": 253,
+      "offset_y": -530,
+      "align": "center"
+    }
+  ]
+}

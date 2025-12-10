@@ -1,0 +1,42 @@
+{
+  "start_month": 10,
+  "start_day": 24,
+  "end_month": 10,
+  "end_day": 31,
+  "profile_processor": "profile_processor.py",
+  "profile_processor_config": {
+    "enabled": true,
+    "file": "witch_hat.png",
+    "scale_factor": 1.2,
+    "vertical_offset": 0.35,
+    "horizontal_offset": 0.1,
+    "min_neighbors": 5,
+    "detection_scale": 1.1
+  },
+  "assets": [
+    {
+      "type": "image",
+      "file": "image.png",
+      "scale": 0.85,
+      "position": "bottom-left",
+      "padding": 30
+    },
+    {
+      "type": "message",
+      "texts": [
+        "Happy Halloween!",
+        "Bus eller Godis!",
+        "Trick or Treat!",
+        "Spooky Season!",
+        "God Halloween!"
+      ],
+      "color": [255, 128, 0],
+      "font_size": 52,
+      "position": "bottom-left",
+      "padding": 30,
+      "offset_x": 253,
+      "offset_y": -530,
+      "align": "center"
+    }
+  ]
+}

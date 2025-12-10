@@ -1,0 +1,42 @@
+{
+  "start_month": 2,
+  "start_day": 10,
+  "end_month": 2,
+  "end_day": 16,
+  "profile_processor": "profile_processor.py",
+  "profile_processor_config": {
+    "enabled": true,
+    "file": "hearts.png",
+    "scale_factor": 0.8,
+    "vertical_offset": 0.2,
+    "horizontal_offset": 0.0,
+    "min_neighbors": 5,
+    "detection_scale": 1.1
+  },
+  "assets": [
+    {
+      "type": "image",
+      "file": "image.png",
+      "scale": 0.85,
+      "position": "bottom-left",
+      "padding": 30
+    },
+    {
+      "type": "message",
+      "texts": [
+        "Glad Alla Hjärtans Dag!",
+        "Happy Valentine's Day!",
+        "Friendship & Kindness",
+        "Appreciation Day",
+        "Celebrating Together"
+      ],
+      "color": [212, 31, 58],
+      "font_size": 52,
+      "position": "bottom-left",
+      "padding": 30,
+      "offset_x": 253,
+      "offset_y": -530,
+      "align": "center"
+    }
+  ]
+}

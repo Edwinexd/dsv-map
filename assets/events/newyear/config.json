@@ -1,0 +1,42 @@
+{
+  "start_month": 12,
+  "start_day": 26,
+  "end_month": 1,
+  "end_day": 9,
+  "profile_processor": "profile_processor.py",
+  "profile_processor_config": {
+    "enabled": true,
+    "file": "party_hat.png",
+    "scale_factor": 1.2,
+    "vertical_offset": 0.35,
+    "horizontal_offset": 0.1,
+    "min_neighbors": 5,
+    "detection_scale": 1.1
+  },
+  "assets": [
+    {
+      "type": "image",
+      "file": "image.png",
+      "scale": 0.85,
+      "position": "bottom-left",
+      "padding": 30
+    },
+    {
+      "type": "message",
+      "texts": [
+        "Gott Nytt År!",
+        "Happy New Year!",
+        "Välkommen 2025!",
+        "Skål för ett nytt år!",
+        "Happy New Year, DSV!"
+      ],
+      "color": [218, 165, 32],
+      "font_size": 52,
+      "position": "bottom-left",
+      "padding": 30,
+      "offset_x": 253,
+      "offset_y": -530,
+      "align": "center"
+    }
+  ]
+}

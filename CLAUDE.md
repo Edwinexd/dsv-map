@@ -227,6 +227,10 @@ The Christmas event includes a profile processor that uses OpenCV Haar Cascade f
 
 **Integration:** Profile processors are loaded by `event_utils.py` and called from `main.py` and `create_tv_16x9_with_qr.py` when an active event has a `profile_processor` configured.
 
+### Configured Events
+
+Events are stored in `assets/events/` folders. Browse the folder to see all configured events. Date ranges can wrap around year boundaries (e.g., Dec 26 - Jan 9 for New Year).
+
 ## Automation
 
 ### Daily Build (2:00 AM UTC)

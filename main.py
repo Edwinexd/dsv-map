@@ -117,17 +117,37 @@ for emp in all_employees:
             matched = True
             break
 
-# Apply location overrides (these take precedence)
+# Apply location and unit overrides (these take precedence)
 clickmap_pos = clickmap_positions.fetch_clickmap_positions()
 for emp in all_employees:
     person_id = emp["person_id"]
     if person_id in location_overrides:
-        override_room = location_overrides[person_id]
-        emp["room"] = override_room
-        if override_room in clickmap_pos:
-            x, y = clickmap_pos[override_room]
-            employee_coords[person_id] = (x, y, "clickmap", None)
-            print(f"Applied location override for {emp['name']} (ID: {person_id}): {override_room}")
+        override = location_overrides[person_id]
+        override_parts = []
+
+        # Apply room override
+        if "room" in override:
+            override_room = override["room"]
+            emp["room"] = override_room
+            if override_room in clickmap_pos:
+                x, y = clickmap_pos[override_room]
+                employee_coords[person_id] = (x, y, "clickmap", None)
+            override_parts.append(f"room={override_room}")
+
+        # Apply unit override
+        if "unit" in override:
+            override_unit = override["unit"]
+            emp["units"] = [override_unit]
+            employee_units_map[person_id] = [override_unit]
+            if override_unit not in all_units_set:
+                all_units_set.add(override_unit)
+                all_units = sorted(all_units_set)
+            override_parts.append(f"unit={override_unit}")
+
+        if override_parts:
+            print(
+                f"Applied override for {emp['name']} (ID: {person_id}): {', '.join(override_parts)}"
+            )
 
 print(f"Positioned {len(employee_coords)} employees")
 

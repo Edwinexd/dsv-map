@@ -1,17 +1,17 @@
 name: Update My Location
-description: Update your room location on the DSV staff map
+description: Update your room location and/or unit on the DSV staff map
 title: "[Location Update] "
 labels: ["location-update"]
 body:
   - type: markdown
     attributes:
       value: |
-        ## Request a Location Update
-        Use this form to request an update to your room location on the DSV staff map.
+        ## Request a Location/Unit Update
+        Use this form to request an update to your room location and/or unit on the DSV staff map.
 
         **How it works:**
-        1. Submit this form with your Person ID and new room location
-        2. An automated pull request will be created to update your location
+        1. Submit this form with your Person ID and new room location and/or unit
+        2. An automated pull request will be created to update your information
         3. Once the PR is reviewed and merged, your location will be updated on the next map regeneration
 
         You can find your Daisy person ID from your profile URL:
@@ -31,12 +31,21 @@ body:
     attributes:
       label: Room Number
       description: |
-        Your room number. Can be:
+        Your room number (optional if only updating unit). Can be:
         - A specific room number (e.g., 61302)
         - A zone notation (e.g., 2:X for zone 2)
       placeholder: "2:X"
     validations:
-      required: true
+      required: false
+
+  - type: input
+    id: unit
+    attributes:
+      label: Unit
+      description: Your unit/research group (optional if only updating room)
+      placeholder: "ACT"
+    validations:
+      required: false
 
   - type: input
     id: profile-url

@@ -1,9 +1,10 @@
 {
-  "_comment": "User-submitted location updates managed via GitHub Issues automation",
-  "_format": "person_id: room_number (e.g., '2:X' for zone 2, or '61302' for exact room)",
-  "_instructions": "Users submit location update requests via GitHub Issues, which automatically creates a PR to update this file",
-  "_example_zone": "175766: '2:X'",
-  "_example_room": "175766: '61302'",
-  "175766": "2:8",
-  "152962": "63120"
+  "_comment": "User-submitted location and unit updates managed via GitHub Issues automation",
+  "_format": "person_id: {room: room_number, unit: unit_name} - both fields optional",
+  "_instructions": "Users submit update requests via GitHub Issues, which automatically creates a PR to update this file",
+  "_example_room_only": "175766: {\"room\": \"2:X\"}",
+  "_example_unit_only": "175766: {\"unit\": \"ACT\"}",
+  "_example_both": "175766: {\"room\": \"61302\", \"unit\": \"ACT\"}",
+  "175766": {"room": "2:8", "unit": "ACT"},
+  "152962": {"room": "63120", "unit": "ACT"}
 }

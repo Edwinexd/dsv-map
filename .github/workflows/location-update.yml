@@ -28,14 +28,21 @@ jobs:
             // Parse the issue form data
             const personIdMatch = issueBody.match(/### Person ID\s*\n\s*([^\n]+)/);
             const roomMatch = issueBody.match(/### Room Number\s*\n\s*([^\n]+)/);
+            const unitMatch = issueBody.match(/### Unit\s*\n\s*([^\n]+)/);
             const profileUrlMatch = issueBody.match(/### Daisy Profile URL\s*\n\s*([^\n]+)/);
 
             const personId = personIdMatch ? personIdMatch[1].trim() : null;
             const room = roomMatch ? roomMatch[1].trim() : null;
+            const unit = unitMatch ? unitMatch[1].trim() : null;
             const profileUrl = profileUrlMatch ? profileUrlMatch[1].trim() : null;
 
+            // Normalize empty/no response values
+            const hasRoom = room && room !== '_No response_' && room !== '';
+            const hasUnit = unit && unit !== '_No response_' && unit !== '';
+
             console.log('Parsed - Person ID:', personId);
-            console.log('Parsed - Room:', room);
+            console.log('Parsed - Room:', room, '(has:', hasRoom, ')');
+            console.log('Parsed - Unit:', unit, '(has:', hasUnit, ')');
             console.log('Parsed - Profile URL:', profileUrl);
 
             // Validate the data
@@ -48,12 +55,23 @@ jobs:
               errors.push('Person ID must be numeric (e.g., 175766)');
             }
 
-            if (!room || room === '_No response_' || room === '') {
-              errors.push('Room Number is required');
-            } else {
-              // Validate room format: either "digits" or "digit:X" or "digit:digit"
+            // At least room or unit must be provided
+            if (!hasRoom && !hasUnit) {
+              errors.push('At least Room Number or Unit must be provided');
+            }
+
+            // Validate room format if provided
+            if (hasRoom) {
               if (!/^(\d{5}|\d:\w+)$/.test(room)) {
                 errors.push('Room Number must be either a 5-digit room number (e.g., 61302) or zone notation (e.g., 2:X)');
+              }
+            }
+
+            // Validate unit is one of the known units
+            if (hasUnit) {
+              const validUnits = ['ACT', 'Cen', 'DSV', 'DSV_A', 'DSV_IT', 'DSV_SA', 'IDEAL', 'IS', 'SAS', 'SPIDER'];
+              if (!validUnits.includes(unit)) {
+                errors.push(`Unit must be one of: ${validUnits.join(', ')}`);
               }
             }
 
@@ -74,17 +92,28 @@ jobs:
               }
             }
 
+            // Build description of changes
+            const changes = [];
+            if (hasRoom) changes.push(`room=${room}`);
+            if (hasUnit) changes.push(`unit=${unit}`);
+            const changesStr = changes.join(', ');
+
             // Set outputs
             core.setOutput('valid', errors.length === 0);
             core.setOutput('person_id', personId || '');
-            core.setOutput('room', room || '');
+            core.setOutput('room', hasRoom ? room : '');
+            core.setOutput('unit', hasUnit ? unit : '');
+            core.setOutput('has_room', hasRoom);
+            core.setOutput('has_unit', hasUnit);
+            core.setOutput('changes', changesStr);
             core.setOutput('profile_url', profileUrl || '');
             core.setOutput('errors', errors.join('\n- '));
 
             return {
               valid: errors.length === 0,
               personId,
-              room,
+              room: hasRoom ? room : null,
+              unit: hasUnit ? unit : null,
               profileUrl,
               errors
             };
@@ -115,11 +144,24 @@ jobs:
         run: |
           PERSON_ID="${{ steps.parse.outputs.person_id }}"
           ROOM="${{ steps.parse.outputs.room }}"
+          UNIT="${{ steps.parse.outputs.unit }}"
+          HAS_ROOM="${{ steps.parse.outputs.has_room }}"
+          HAS_UNIT="${{ steps.parse.outputs.has_unit }}"
 
-          # Read and update the JSON file
-          jq --arg pid "$PERSON_ID" --arg room "$ROOM" \
-            '.[$pid] = $room' \
-            data/location_overrides.json > temp.json && mv temp.json data/location_overrides.json
+          # Build the override object based on what was provided
+          if [ "$HAS_ROOM" = "true" ] && [ "$HAS_UNIT" = "true" ]; then
+            jq --arg pid "$PERSON_ID" --arg room "$ROOM" --arg unit "$UNIT" \
+              '.[$pid] = {"room": $room, "unit": $unit}' \
+              data/location_overrides.json > temp.json && mv temp.json data/location_overrides.json
+          elif [ "$HAS_ROOM" = "true" ]; then
+            jq --arg pid "$PERSON_ID" --arg room "$ROOM" \
+              '.[$pid] = (.[$pid] // {}) + {"room": $room}' \
+              data/location_overrides.json > temp.json && mv temp.json data/location_overrides.json
+          elif [ "$HAS_UNIT" = "true" ]; then
+            jq --arg pid "$PERSON_ID" --arg unit "$UNIT" \
+              '.[$pid] = (.[$pid] // {}) + {"unit": $unit}' \
+              data/location_overrides.json > temp.json && mv temp.json data/location_overrides.json
+          fi
 
       - name: Create Pull Request
         if: steps.parse.outputs.valid == 'true'
@@ -127,20 +169,20 @@ jobs:
         uses: peter-evans/create-pull-request@v7
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          commit-message: Update location for person ID ${{ steps.parse.outputs.person_id }} to ${{ steps.parse.outputs.room }}
+          commit-message: "Update override for person ID ${{ steps.parse.outputs.person_id }}: ${{ steps.parse.outputs.changes }}"
           branch: location-update-${{ steps.parse.outputs.person_id }}-${{ github.run_number }}
           delete-branch: true
-          title: 'Location Update: Person ID ${{ steps.parse.outputs.person_id }} → ${{ steps.parse.outputs.room }}'
+          title: 'Override Update: Person ID ${{ steps.parse.outputs.person_id }} (${{ steps.parse.outputs.changes }})'
           body: |
-            ## Location Update Request
+            ## Override Update Request
 
             **Person ID:** ${{ steps.parse.outputs.person_id }}
-            **New Room:** ${{ steps.parse.outputs.room }}
+            **Changes:** ${{ steps.parse.outputs.changes }}
 
             Automatically generated from issue #${{ github.event.issue.number }}
 
             ### Changes
-            - Updated `data/location_overrides.json` to set room location for person ID ${{ steps.parse.outputs.person_id }}
+            - Updated `data/location_overrides.json` for person ID ${{ steps.parse.outputs.person_id }}
 
             Closes #${{ github.event.issue.number }}
 
@@ -153,5 +195,5 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.issue.number,
-              body: `✅ **Location update request processed!**\n\nA pull request has been created: #${{ steps.cpr.outputs.pull-request-number }}\n\nOnce merged, the location will be updated to **${{ steps.parse.outputs.room }}** on the next map regeneration.`
+              body: `✅ **Override update request processed!**\n\nA pull request has been created: #${{ steps.cpr.outputs.pull-request-number }}\n\nOnce merged, the following will be updated on the next map regeneration: **${{ steps.parse.outputs.changes }}**`
             });

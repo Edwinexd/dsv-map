@@ -85,7 +85,7 @@ profile_pictures/ - Downloaded employee photos (gitignored)
 
 ### Data Files
 
-- **data/location_overrides.json** - User-submitted location corrections (GitHub automation)
+- **data/location_overrides.json** - User-submitted location and unit overrides (GitHub automation)
 
 ### Assets
 
@@ -106,7 +106,20 @@ profile_pictures/ - Downloaded employee photos (gitignored)
 4. Workflow creates Pull Request with changes
 5. Once PR is merged, next map generation applies the update
 
-**Important:** Location overrides take precedence over Clickmap positions.
+**Override Format:**
+
+```json
+{
+  "person_id": {"room": "room_number", "unit": "unit_name"}
+}
+```
+
+Both `room` and `unit` fields are optional - you can override just one or both:
+- `{"room": "2:X"}` - Override room only
+- `{"unit": "ACT"}` - Override unit only
+- `{"room": "61302", "unit": "ACT"}` - Override both
+
+**Important:** Location and unit overrides take precedence over Clickmap positions and dsv-wrapper data.
 
 ## QR Code System
 

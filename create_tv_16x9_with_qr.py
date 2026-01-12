@@ -84,15 +84,19 @@ def main(employee_json, output_png, title=None):
         for emp in employees:
             person_id = emp["person_id"]
             if person_id in location_overrides:
-                override_room = location_overrides[person_id]
-                emp["room"] = override_room
-                if override_room in clickmap_pos:
-                    x, y = clickmap_pos[override_room]
-                    employee_coords[person_id] = (x, y, "clickmap", None)
-                    if person_id not in employee_coords:
-                        stats["placed"] += 1
-                        stats["no_position"] -= 1
-                    print(f"Applied override for {emp['name']}: {override_room}")
+                override = location_overrides[person_id]
+                # Handle new dict format: {"room": "...", "unit": "..."}
+                override_room = override.get("room") if isinstance(override, dict) else override
+                if override_room:
+                    emp["room"] = override_room
+                    if override_room in clickmap_pos:
+                        x, y = clickmap_pos[override_room]
+                        was_placed = person_id in employee_coords
+                        employee_coords[person_id] = (x, y, "clickmap", None)
+                        if not was_placed:
+                            stats["placed"] += 1
+                            stats["no_position"] -= 1
+                    print(f"Applied override for {emp['name']}: room={override_room}")
 
     print(f"Placed {stats['placed']}/{len(employees)} employees")
 

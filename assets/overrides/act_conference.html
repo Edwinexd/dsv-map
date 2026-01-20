@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=1920, height=1080">
+    <title>ACT Conference 2026</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            width: 1920px;
+            height: 1080px;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Animated background elements */
+        .bg-circle {
+            position: absolute;
+            border-radius: 50%;
+            opacity: 0.1;
+        }
+
+        .bg-circle-1 {
+            width: 600px;
+            height: 600px;
+            background: linear-gradient(45deg, #e94560, #ff6b6b);
+            top: -200px;
+            right: -100px;
+        }
+
+        .bg-circle-2 {
+            width: 400px;
+            height: 400px;
+            background: linear-gradient(45deg, #00d9ff, #0099ff);
+            bottom: -100px;
+            left: -50px;
+        }
+
+        .bg-circle-3 {
+            width: 300px;
+            height: 300px;
+            background: linear-gradient(45deg, #00ff88, #00cc6a);
+            top: 50%;
+            left: 10%;
+            transform: translateY(-50%);
+        }
+
+        /* Content container */
+        .content {
+            text-align: center;
+            z-index: 10;
+            padding: 60px;
+        }
+
+        /* Main title */
+        .title {
+            font-size: 120px;
+            font-weight: 700;
+            letter-spacing: -2px;
+            margin-bottom: 20px;
+            background: linear-gradient(90deg, #ffffff, #e0e0e0);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 4px 30px rgba(255,255,255,0.1);
+        }
+
+        .title span {
+            background: linear-gradient(90deg, #e94560, #ff6b6b);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        /* Subtitle */
+        .subtitle {
+            font-size: 48px;
+            font-weight: 300;
+            color: rgba(255,255,255,0.8);
+            margin-bottom: 60px;
+            letter-spacing: 8px;
+            text-transform: uppercase;
+        }
+
+        /* Info box */
+        .info-box {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 24px;
+            padding: 40px 80px;
+            display: inline-block;
+        }
+
+        .date {
+            font-size: 36px;
+            font-weight: 600;
+            color: #00d9ff;
+            margin-bottom: 15px;
+        }
+
+        .location {
+            font-size: 28px;
+            font-weight: 400;
+            color: rgba(255,255,255,0.9);
+        }
+
+        .location-icon {
+            display: inline-block;
+            margin-right: 10px;
+        }
+
+        /* Footer */
+        .footer {
+            position: absolute;
+            bottom: 40px;
+            display: flex;
+            align-items: center;
+            gap: 30px;
+            opacity: 0.7;
+        }
+
+        .footer img {
+            height: 50px;
+            filter: brightness(0) invert(1);
+        }
+
+        .footer-text {
+            font-size: 20px;
+            letter-spacing: 2px;
+        }
+
+        /* Decorative lines */
+        .deco-line {
+            position: absolute;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, rgba(233,69,96,0.5), transparent);
+        }
+
+        .deco-line-1 {
+            width: 400px;
+            top: 200px;
+            left: 100px;
+            transform: rotate(-15deg);
+        }
+
+        .deco-line-2 {
+            width: 300px;
+            bottom: 250px;
+            right: 150px;
+            transform: rotate(20deg);
+        }
+    </style>
+</head>
+<body>
+    <!-- Background decorations -->
+    <div class="bg-circle bg-circle-1"></div>
+    <div class="bg-circle bg-circle-2"></div>
+    <div class="bg-circle bg-circle-3"></div>
+    <div class="deco-line deco-line-1"></div>
+    <div class="deco-line deco-line-2"></div>
+
+    <!-- Main content -->
+    <div class="content">
+        <h1 class="title"><span>ACT</span> Conference</h1>
+        <p class="subtitle">Don't miss it!</p>
+
+        <div class="info-box">
+            <p class="date">Thursday, January 22nd</p>
+            <p class="location">
+                <span class="location-icon">📍</span>
+                Odenplan
+            </p>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+        <span class="footer-text">Department of Computer and Systems Sciences</span>
+    </div>
+</body>
+</html>

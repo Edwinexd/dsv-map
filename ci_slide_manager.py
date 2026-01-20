@@ -2,9 +2,11 @@
 """CI Slide Manager - Handle build-in-progress indicator for ACT Lab display.
 
 Usage:
-    python ci_slide_manager.py start   - Remove old slide from show, upload CI progress image
-    python ci_slide_manager.py success - Upload new slide, remove CI progress, delete old slide
-    python ci_slide_manager.py failure - Remove CI progress, restore old slide to show
+    python ci_slide_manager.py start    - Remove old slide from show, upload CI progress image
+    python ci_slide_manager.py success  - Upload new slide, remove CI progress, delete old slide
+    python ci_slide_manager.py failure  - Remove CI progress, restore old slide to show
+    python ci_slide_manager.py override - Upload date-based override image (skips build)
+    python ci_slide_manager.py check    - Check if today has an override (exit 0 if yes, 1 if no)
 """
 
 import argparse
@@ -13,6 +15,7 @@ import logging
 import os
 import sys
 import tempfile
+from datetime import datetime
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -30,6 +33,7 @@ SHOW_ID = 1
 CI_PROGRESS_IMAGE = SCRIPT_DIR / "assets" / "ci-build-in-progress.png"
 NEW_MAP_IMAGE = SCRIPT_DIR / "output" / "tv" / "ACT_map_tv.png"
 STATE_FILE = SCRIPT_DIR / "output" / ".ci_slide_state.json"
+OVERRIDES_FILE = SCRIPT_DIR / "data" / "display_overrides.json"
 SLIDE_NAME = "ACT Lab Map"
 CI_SLIDE_NAME = "CI Build In Progress"
 MAX_UPLOAD_SIZE_MB = 1.9
@@ -58,6 +62,31 @@ def cleanup_state() -> None:
     if STATE_FILE.exists():
         STATE_FILE.unlink()
         logger.info("Cleaned up state file")
+
+
+def get_todays_override() -> tuple[Path, str] | None:
+    """Check if there's an override for today's date.
+
+    Returns tuple of (image_path, slide_name) if override exists, None otherwise.
+    """
+    if not OVERRIDES_FILE.exists():
+        return None
+
+    overrides = json.loads(OVERRIDES_FILE.read_text())
+    today = datetime.now().strftime("%Y-%m-%d")
+
+    if today not in overrides:
+        return None
+
+    override = overrides[today]
+    image_path = SCRIPT_DIR / override["image"]
+    slide_name = override.get("name", "Override Slide")
+
+    if not image_path.exists():
+        logger.error(f"Override image not found: {image_path}")
+        return None
+
+    return image_path, slide_name
 
 
 def upload_image(actlab: ACTLabClient, image_path: Path, slide_name: str) -> int | None:
@@ -198,14 +227,68 @@ def cmd_failure(actlab: ACTLabClient) -> int:
     return 0
 
 
+def cmd_check() -> int:
+    """Check if today has a display override. Exit 0 if yes, 1 if no."""
+    override = get_todays_override()
+    if override:
+        image_path, slide_name = override
+        logger.info(f"Override found: {slide_name} ({image_path})")
+        return 0
+    else:
+        logger.info("No override for today")
+        return 1
+
+
+def cmd_override(actlab: ACTLabClient) -> int:
+    """Upload override image for today, replacing current slide."""
+    override = get_todays_override()
+    if not override:
+        logger.error("No override configured for today")
+        return 1
+
+    image_path, slide_name = override
+
+    logger.info("=" * 60)
+    logger.info(f"Uploading Override: {slide_name}")
+    logger.info("=" * 60)
+
+    # Find existing slides with auto_delete in the show
+    existing_slides = actlab.get_slides()
+    old_slides = [s for s in existing_slides if s.show_id == SHOW_ID and s.auto_delete]
+
+    # Upload override image
+    new_slide_id = upload_image(actlab, image_path, slide_name)
+    if new_slide_id is None:
+        logger.error("Failed to upload override image")
+        return 1
+
+    actlab.add_slide_to_show(new_slide_id, show_id=SHOW_ID, auto_delete=True)
+    logger.info(f"Added override slide {new_slide_id} to show")
+
+    # Remove old slides
+    for old_slide in old_slides:
+        actlab.remove_slide_from_show(old_slide.id, show_id=SHOW_ID)
+        actlab.delete_slide(old_slide.id)
+        logger.info(f"Removed old slide {old_slide.id}")
+
+    logger.info("=" * 60)
+    logger.info("Override uploaded successfully!")
+    logger.info("=" * 60)
+    return 0
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="CI Slide Manager for ACT Lab display")
     parser.add_argument(
         "command",
-        choices=["start", "success", "failure"],
+        choices=["start", "success", "failure", "override", "check"],
         help="Command to execute",
     )
     args = parser.parse_args()
+
+    # Check command doesn't need ACTLabClient
+    if args.command == "check":
+        return cmd_check()
 
     with ACTLabClient() as actlab:
         if args.command == "start":
@@ -214,6 +297,8 @@ def main() -> int:
             return cmd_success(actlab)
         elif args.command == "failure":
             return cmd_failure(actlab)
+        elif args.command == "override":
+            return cmd_override(actlab)
 
     return 1
 

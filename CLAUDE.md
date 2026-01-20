@@ -58,12 +58,15 @@ The Clickmap service provides positions for all rooms including zone-based posit
 
 ```
 assets/          - Image assets (floor plan, QR codes, logos)
-  └── events/    - Seasonal event decorations (see Event System below)
-      └── <event_name>/
-          ├── config.json  - Event configuration
-          └── image.png    - Event image
+  ├── events/    - Seasonal event decorations (see Event System below)
+  │   └── <event_name>/
+  │       ├── config.json  - Event configuration
+  │       └── image.png    - Event image
+  └── overrides/ - Date-based display override images
+      └── *.png  - Override images (referenced by display_overrides.json)
 data/            - Configuration and data files
-  └── location_overrides.json  - User-submitted location updates
+  ├── location_overrides.json  - User-submitted location updates
+  └── display_overrides.json   - Date-based display overrides
 output/          - Generated files (gitignored)
   ├── html/      - Interactive HTML maps
   └── tv/        - TV display images
@@ -86,6 +89,7 @@ profile_pictures/ - Downloaded employee photos (gitignored)
 ### Data Files
 
 - **data/location_overrides.json** - User-submitted location and unit overrides (GitHub automation)
+- **data/display_overrides.json** - Date-based display overrides (replaces map with custom image)
 
 ### Assets
 
@@ -120,6 +124,38 @@ Both `room` and `unit` fields are optional - you can override just one or both:
 - `{"room": "61302", "unit": "ACT"}` - Override both
 
 **Important:** Location and unit overrides take precedence over Clickmap positions and dsv-wrapper data.
+
+## Display Override System
+
+Allows replacing the generated map with a custom image on specific dates (e.g., for conferences, events).
+
+**How it works:**
+
+1. CI workflow checks `data/display_overrides.json` for today's date
+2. If override exists, skips normal build and uploads the override image instead
+3. Override images stored in `assets/overrides/`
+
+**Override Format (`data/display_overrides.json`):**
+
+```json
+{
+  "2026-01-22": {
+    "image": "assets/overrides/act_conference.jpg",
+    "name": "ACT Conference"
+  }
+}
+```
+
+**CI Slide Manager Commands:**
+
+- `python ci_slide_manager.py check` - Check if today has an override (exit 0=yes, 1=no)
+- `python ci_slide_manager.py override` - Upload today's override image
+
+**Creating Override Images:**
+
+1. Create HTML in `assets/overrides/` (1920x1080 for 16:9 displays)
+2. Render to PNG using playwright or similar
+3. Add entry to `data/display_overrides.json`
 
 ## QR Code System
 

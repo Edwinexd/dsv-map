@@ -43,19 +43,34 @@ jobs:
           SU_PASSWORD=$SU_PASSWORD
           EOF
 
+      - name: Check for display override
+        id: check_override
+        run: |
+          if python3 ci_slide_manager.py check; then
+            echo "has_override=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_override=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Upload override image
+        if: steps.check_override.outputs.has_override == 'true'
+        run: python3 ci_slide_manager.py override
+
       - name: Show CI progress on display
+        if: steps.check_override.outputs.has_override != 'true'
         run: python3 ci_slide_manager.py start
 
       - name: Run build process
+        if: steps.check_override.outputs.has_override != 'true'
         id: build
         run: python3 main.py
 
       - name: Upload to ACT Lab display
-        if: success()
+        if: steps.check_override.outputs.has_override != 'true' && success()
         run: python3 ci_slide_manager.py success
 
       - name: Restore previous slide on failure
-        if: failure()
+        if: steps.check_override.outputs.has_override != 'true' && failure()
         run: python3 ci_slide_manager.py failure
 
       - name: List generated files

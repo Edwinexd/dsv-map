@@ -1,0 +1,15 @@
+{
+  "_comment": "Date-based display overrides. Dates in YYYY-MM-DD format.",
+  "2026-01-20": {
+    "image": "assets/overrides/act_conference.jpg",
+    "name": "ACT Conference"
+  },
+  "2026-01-21": {
+    "image": "assets/overrides/act_conference.jpg",
+    "name": "ACT Conference"
+  },
+  "2026-01-22": {
+    "image": "assets/overrides/act_conference.jpg",
+    "name": "ACT Conference"
+  }
+}

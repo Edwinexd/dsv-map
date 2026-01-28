@@ -1095,7 +1095,7 @@ def main(employee_json, output_png, title=None, bluelight_filter_force=None):
 
     # Apply blue-light filter if it's night time in Stockholm (or forced)
     canvas = bluelight_filter.maybe_apply_bluelight_filter(
-        canvas, intensity=0.3, force=bluelight_filter_force
+        canvas, intensity=0.6, force=bluelight_filter_force
     )
 
     # Save

@@ -64,7 +64,7 @@ def is_night_time(now=None):
     return now < sun_times["dawn"] or now > sun_times["dusk"]
 
 
-def apply_bluelight_filter(image, intensity=0.3):
+def apply_bluelight_filter(image, intensity=0.6):
     """
     Apply a blue-light filter (warm/orange tint) to an image.
 
@@ -72,7 +72,7 @@ def apply_bluelight_filter(image, intensity=0.3):
 
     Args:
         image: PIL Image (RGB or RGBA)
-        intensity: Filter strength from 0.0 (none) to 1.0 (maximum). Default 0.3.
+        intensity: Filter strength from 0.0 (none) to 1.0 (maximum). Default 0.6.
 
     Returns:
         PIL Image with the filter applied
@@ -90,15 +90,15 @@ def apply_bluelight_filter(image, intensity=0.3):
     # Split into channels
     r, g, b, a = image.split()
 
-    # Blue-light filter adjustments:
-    # - Reduce blue channel
-    # - Slightly reduce green
-    # - Slightly boost red (warmth)
+    # Blue-light filter adjustments for warm yellow/orange tint:
+    # - Strongly reduce blue channel
+    # - Moderately reduce green
+    # - Boost red (warmth)
 
     # Calculate adjustment factors based on intensity
-    blue_reduction = int(60 * intensity)  # Max 60 points reduction
-    green_reduction = int(20 * intensity)  # Max 20 points reduction
-    red_boost = int(15 * intensity)  # Max 15 points boost
+    blue_reduction = int(120 * intensity)  # Max 120 points reduction
+    green_reduction = int(40 * intensity)  # Max 40 points reduction
+    red_boost = int(35 * intensity)  # Max 35 points boost
 
     # Apply adjustments using point operations
     r = r.point(lambda x: min(255, x + red_boost))
@@ -115,13 +115,13 @@ def apply_bluelight_filter(image, intensity=0.3):
     return result
 
 
-def maybe_apply_bluelight_filter(image, intensity=0.3, force=None):
+def maybe_apply_bluelight_filter(image, intensity=0.6, force=None):
     """
     Apply blue-light filter based on time or force setting.
 
     Args:
         image: PIL Image (RGB or RGBA)
-        intensity: Filter strength from 0.0 to 1.0. Default 0.3.
+        intensity: Filter strength from 0.0 to 1.0. Default 0.6.
         force: If True, always apply filter. If False, never apply. If None, check time.
 
     Returns:

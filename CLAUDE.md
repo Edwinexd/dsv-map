@@ -327,11 +327,12 @@ The filter is controlled in `bluelight_filter.py`:
 - On failure: removes progress indicator, keeps previous map as fallback (CI still fails)
 - Requires `SU_USERNAME` and `SU_PASSWORD` secrets
 
-### Day/Night Swap (Every 2 Hours)
-- Same workflow, but runs swap job instead of full build
+### Day/Night Swap (Every 30 Minutes)
+- `.github/workflows/day-night-swap.yml`
+- Separate workflow from build
+- Downloads artifacts from last successful build
 - Checks if correct day/night version is displayed
 - Only swaps if the wrong version is currently showing
-- No build required - uses artifacts from last full build
 
 **CI Slide Management Flow (Full Build):**
 1. `ci_slide_manager.py start` - Disables auto-delete on current slide, uploads progress indicator

@@ -1,0 +1,59 @@
+name: Day/Night Swap
+
+on:
+  schedule:
+    # Run every 30 minutes to check if day/night swap is needed
+    - cron: '0,30 * * * *'
+  workflow_dispatch: # Allow manual triggering
+
+jobs:
+  swap:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Configure credentials
+        env:
+          SU_USERNAME: ${{ secrets.SU_USERNAME }}
+          SU_PASSWORD: ${{ secrets.SU_PASSWORD }}
+        run: |
+          cat > .env << EOF
+          SU_USERNAME=$SU_USERNAME
+          SU_PASSWORD=$SU_PASSWORD
+          EOF
+
+      - name: Check for display override
+        id: check_override
+        run: |
+          if python3 ci_slide_manager.py check; then
+            echo "has_override=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_override=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Download latest build artifacts
+        if: steps.check_override.outputs.has_override != 'true'
+        uses: dawidd6/action-download-artifact@v6
+        with:
+          name: tv-images
+          path: output/tv/
+          workflow: build-release.yml
+          workflow_conclusion: success
+          if_no_artifact_found: fail
+
+      - name: Swap to correct day/night version
+        if: steps.check_override.outputs.has_override != 'true'
+        run: python3 ci_slide_manager.py swap

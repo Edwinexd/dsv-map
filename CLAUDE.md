@@ -11,6 +11,7 @@ This project generates interactive HTML maps and 16:9 TV displays showing DSV st
 - Fetches employee positions from DSV Clickmap service
 - Generates interactive HTML maps with search and filtering
 - Creates 16:9 TV displays with QR codes for location updates
+- Blue-light filter for night/morning hours (based on Stockholm sunrise/sunset)
 - Automated daily builds via GitHub Actions
 - User-submitted location corrections via GitHub Issues
 
@@ -85,6 +86,7 @@ profile_pictures/ - Downloaded employee photos (gitignored)
 - **upload_and_add_to_show.py** - Uploads to ACT Lab display system using dsv-wrapper (manual use)
 - **ci_slide_manager.py** - Manages CI build progress indicator on ACT Lab display (used by GitHub Actions)
 - **event_utils.py** - Loads active events and their profile processors dynamically
+- **bluelight_filter.py** - Applies blue-light filter based on Stockholm day/night cycle
 
 ### Data Files
 
@@ -280,21 +282,65 @@ The Christmas event includes a profile processor that uses OpenCV Haar Cascade f
 
 Events are stored in `assets/events/` folders. Browse the folder to see all configured events. Date ranges can wrap around year boundaries (e.g., Dec 26 - Jan 9 for New Year).
 
+## Blue-Light Filter System
+
+TV displays automatically switch between day and night modes based on Stockholm's sunrise/sunset times. During night hours (before dawn or after dusk), a warm blue-light filter is applied to reduce eye strain.
+
+### How It Works
+
+1. **Daily Build**: Generates both day and night versions of TV images
+   - `ACT_map_tv.png` - Day version (no filter)
+   - `ACT_map_tv_night.png` - Night version (warm blue-light filter applied)
+
+2. **Day/Night Swap**: Every 2 hours, the workflow checks Stockholm time and uploads the appropriate version
+
+3. **Time Detection**: Uses the `astral` library to calculate civil twilight times for Stockholm
+   - Night mode: Before dawn (sun 6° below horizon) or after dusk
+   - Day mode: Between dawn and dusk
+
+### Configuration
+
+The filter is controlled in `bluelight_filter.py`:
+
+| Function | Description |
+|----------|-------------|
+| `get_sun_times()` | Returns sunrise, sunset, dawn, dusk for Stockholm |
+| `is_night_time()` | Returns True if currently night time in Stockholm |
+| `apply_bluelight_filter(image, intensity)` | Applies warm filter to image |
+| `maybe_apply_bluelight_filter(image, intensity, force)` | Applies filter based on time or force setting |
+
+**Filter parameters:**
+- `intensity`: Filter strength from 0.0 to 1.0 (default: 0.3)
+- `force`: Override time check (True=always apply, False=never, None=check time)
+
+### CI Slide Manager Commands
+
+- `python ci_slide_manager.py swap` - Upload correct day/night version based on current Stockholm time
+
 ## Automation
 
 ### Daily Build (2:00 AM UTC)
 - `.github/workflows/build-release.yml`
 - Shows "Build in Progress" indicator on ACT Lab display during build
-- Runs `main.py` to regenerate all maps
+- Runs `main.py` to regenerate all maps (both day and night versions)
 - On success: uploads new map, removes progress indicator
 - On failure: removes progress indicator, keeps previous map as fallback (CI still fails)
 - Requires `SU_USERNAME` and `SU_PASSWORD` secrets
 
-**CI Slide Management Flow:**
+### Day/Night Swap (Every 2 Hours)
+- Same workflow, but runs swap job instead of full build
+- Checks if correct day/night version is displayed
+- Only swaps if the wrong version is currently showing
+- No build required - uses artifacts from last full build
+
+**CI Slide Management Flow (Full Build):**
 1. `ci_slide_manager.py start` - Disables auto-delete on current slide, uploads progress indicator
-2. Build runs (`main.py`)
+2. Build runs (`main.py`) - generates both day and night TV images
 3. On success: `ci_slide_manager.py success` - Uploads new map, removes old slides
 4. On failure: `ci_slide_manager.py failure` - Removes progress indicator, old slide remains
+
+**CI Slide Management Flow (Swap):**
+1. `ci_slide_manager.py swap` - Checks Stockholm time, uploads correct day/night version if changed
 
 ### Location Update Requests
 - `.github/workflows/location-update.yml`

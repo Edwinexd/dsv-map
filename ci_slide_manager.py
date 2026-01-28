@@ -7,6 +7,7 @@ Usage:
     python ci_slide_manager.py failure  - Remove CI progress, restore old slide to show
     python ci_slide_manager.py override - Upload date-based override image (skips build)
     python ci_slide_manager.py check    - Check if today has an override (exit 0 if yes, 1 if no)
+    python ci_slide_manager.py swap     - Upload day/night version based on Stockholm time
 """
 
 import argparse
@@ -22,6 +23,8 @@ from dotenv import load_dotenv
 from dsv_wrapper import ACTLabClient
 from PIL import Image
 
+import bluelight_filter
+
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 logging.getLogger("httpx").setLevel(logging.WARNING)
 logger = logging.getLogger(__name__)
@@ -32,9 +35,11 @@ SCRIPT_DIR = Path(__file__).parent
 SHOW_ID = 1
 CI_PROGRESS_IMAGE = SCRIPT_DIR / "assets" / "ci-build-in-progress.png"
 NEW_MAP_IMAGE = SCRIPT_DIR / "output" / "tv" / "ACT_map_tv.png"
+NEW_MAP_IMAGE_NIGHT = SCRIPT_DIR / "output" / "tv" / "ACT_map_tv_night.png"
 STATE_FILE = SCRIPT_DIR / "output" / ".ci_slide_state.json"
 OVERRIDES_FILE = SCRIPT_DIR / "data" / "display_overrides.json"
 SLIDE_NAME = "ACT Lab Map"
+SLIDE_NAME_NIGHT = "ACT Lab Map (Night)"
 CI_SLIDE_NAME = "CI Build In Progress"
 MAX_UPLOAD_SIZE_MB = 1.9
 
@@ -239,6 +244,66 @@ def cmd_check() -> int:
         return 1
 
 
+def cmd_swap(actlab: ACTLabClient) -> int:
+    """Upload day/night version of map based on Stockholm time."""
+    # Check for override first
+    override = get_todays_override()
+    if override:
+        logger.info("Override active for today, skipping swap")
+        return 0
+
+    # Determine which version to use
+    is_night = bluelight_filter.is_night_time()
+    if is_night:
+        image_path = NEW_MAP_IMAGE_NIGHT
+        slide_name = SLIDE_NAME_NIGHT
+        mode = "night"
+    else:
+        image_path = NEW_MAP_IMAGE
+        slide_name = SLIDE_NAME
+        mode = "day"
+
+    logger.info("=" * 60)
+    logger.info(f"Time-based Swap - Uploading {mode} version")
+    logger.info("=" * 60)
+
+    if not image_path.exists():
+        logger.error(f"Image not found: {image_path}")
+        logger.info("Run a full build first to generate day/night versions")
+        return 1
+
+    # Get current slides
+    existing_slides = actlab.get_slides()
+    current_slides = [s for s in existing_slides if s.show_id == SHOW_ID and s.auto_delete]
+
+    # Check if we already have the correct version showing
+    for slide in current_slides:
+        if slide.name == slide_name:
+            logger.info(f"Correct version ({mode}) already showing, no swap needed")
+            return 0
+
+    # Upload the appropriate version
+    new_slide_id = upload_image(actlab, image_path, slide_name)
+    if new_slide_id is None:
+        logger.error(f"Failed to upload {mode} version")
+        return 1
+
+    actlab.add_slide_to_show(new_slide_id, show_id=SHOW_ID, auto_delete=True)
+    logger.info(f"Added {mode} slide {new_slide_id} to show")
+
+    # Remove old slides (both day and night versions)
+    for slide in current_slides:
+        if slide.name in (SLIDE_NAME, SLIDE_NAME_NIGHT):
+            actlab.remove_slide_from_show(slide.id, show_id=SHOW_ID)
+            actlab.delete_slide(slide.id)
+            logger.info(f"Removed old slide {slide.id} ({slide.name})")
+
+    logger.info("=" * 60)
+    logger.info(f"Swapped to {mode} version successfully!")
+    logger.info("=" * 60)
+    return 0
+
+
 def cmd_override(actlab: ACTLabClient) -> int:
     """Upload override image for today, replacing current slide."""
     override = get_todays_override()
@@ -281,7 +346,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="CI Slide Manager for ACT Lab display")
     parser.add_argument(
         "command",
-        choices=["start", "success", "failure", "override", "check"],
+        choices=["start", "success", "failure", "override", "check", "swap"],
         help="Command to execute",
     )
     args = parser.parse_args()
@@ -299,6 +364,8 @@ def main() -> int:
             return cmd_failure(actlab)
         elif args.command == "override":
             return cmd_override(actlab)
+        elif args.command == "swap":
+            return cmd_swap(actlab)
 
     return 1
 

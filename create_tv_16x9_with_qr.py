@@ -13,10 +13,11 @@ from datetime import date
 
 from PIL import Image, ImageDraw, ImageFont
 
+import bluelight_filter
 import event_utils
 
 
-def main(employee_json, output_png, title=None):
+def main(employee_json, output_png, title=None, bluelight_filter_force=None):
     employee_file = employee_json
     output_file = output_png
 
@@ -1092,6 +1093,11 @@ def main(employee_json, output_png, title=None):
         if overlay:
             canvas.paste(overlay["image"], (overlay["x"], overlay["y"]), overlay["image"])
 
+    # Apply blue-light filter if it's night time in Stockholm (or forced)
+    canvas = bluelight_filter.maybe_apply_bluelight_filter(
+        canvas, intensity=0.3, force=bluelight_filter_force
+    )
+
     # Save
     canvas.save(output_file, "PNG")
     print(f"✅ 16:9 TV map with QR code saved: {output_file}")
@@ -1108,6 +1114,23 @@ if __name__ == "__main__":
     parser.add_argument("employee_json", help="Path to employee JSON file")
     parser.add_argument("output_png", help="Output PNG file path")
     parser.add_argument("--title", default=None, help="Title for the image")
+    parser.add_argument(
+        "--bluelight",
+        choices=["auto", "on", "off"],
+        default="auto",
+        help="Blue-light filter: auto (based on time), on (always), off (never)",
+    )
     args = parser.parse_args()
 
-    main(args.employee_json, args.output_png, title=args.title)
+    bluelight_force = None
+    if args.bluelight == "on":
+        bluelight_force = True
+    elif args.bluelight == "off":
+        bluelight_force = False
+
+    main(
+        args.employee_json,
+        args.output_png,
+        title=args.title,
+        bluelight_filter_force=bluelight_force,
+    )

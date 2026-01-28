@@ -554,16 +554,32 @@ for unit in all_units:
     with open(unit_json, "w", encoding="utf-8") as f:
         json.dump(unit_employees, f, ensure_ascii=False, indent=2)
 
-    # Generate TV image for this unit
+    # Generate TV image for this unit (day version - no blue-light filter)
     unit_output = f"output/tv/{unit.replace(' ', '_').replace('/', '_')}_map_tv.png"
     print(f"\n[{unit}] Generating 16:9 TV image for {len(unit_employees)} employees...")
 
     try:
-        create_tv_16x9_with_qr.main(unit_json, unit_output, title=unit)
+        create_tv_16x9_with_qr.main(
+            unit_json, unit_output, title=unit, bluelight_filter_force=False
+        )
         tv_files.append(unit_output)
         print(f"✅ Generated: {unit_output}")
     except (OSError, ValueError) as e:
         print(f"❌ Failed to generate: {unit_output}: {e}")
+
+    # Generate night version (with blue-light filter) for ACT unit
+    if unit == "ACT":
+        unit_output_night = f"output/tv/{unit.replace(' ', '_').replace('/', '_')}_map_tv_night.png"
+        print(f"\n[{unit}] Generating night version with blue-light filter...")
+
+        try:
+            create_tv_16x9_with_qr.main(
+                unit_json, unit_output_night, title=unit, bluelight_filter_force=True
+            )
+            tv_files.append(unit_output_night)
+            print(f"✅ Generated: {unit_output_night}")
+        except (OSError, ValueError) as e:
+            print(f"❌ Failed to generate: {unit_output_night}: {e}")
 
     # Clean up temporary file
     os.remove(unit_json)

@@ -3,6 +3,7 @@ python-dotenv==1.2.1
 pillow==11.3.0
 opencv-python>=4.10.0
 numpy>=1.26.0
+astral>=3.2
 
 # DSV Systems Integration
 git+https://github.com/Edwinexd/dsv-wrapper.git

@@ -337,8 +337,9 @@ The filter is controlled in `bluelight_filter.py`:
 **CI Slide Management Flow (Full Build):**
 1. `ci_slide_manager.py start` - Disables auto-delete on current slide, uploads progress indicator
 2. Build runs (`main.py`) - generates both day and night TV images
-3. On success: `ci_slide_manager.py success` - Uploads new map, removes old slides
-4. On failure: `ci_slide_manager.py failure` - Removes progress indicator, old slide remains
+3. On success: `ci_slide_manager.py success` - Removes progress indicator, deletes old slide (no upload)
+4. On success: `ci_slide_manager.py swap` - Uploads correct day/night version based on Stockholm time
+5. On failure: `ci_slide_manager.py failure` - Removes progress indicator, old slide remains
 
 **CI Slide Management Flow (Swap):**
 1. `ci_slide_manager.py swap` - Checks Stockholm time, uploads correct day/night version if changed

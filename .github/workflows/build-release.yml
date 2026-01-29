@@ -65,9 +65,13 @@ jobs:
         id: build
         run: python3 main.py
 
-      - name: Upload to ACT Lab display
+      - name: Clean up CI progress indicator
         if: steps.check_override.outputs.has_override != 'true' && success()
         run: python3 ci_slide_manager.py success
+
+      - name: Upload correct day/night version
+        if: steps.check_override.outputs.has_override != 'true' && success()
+        run: python3 ci_slide_manager.py swap
 
       - name: Restore previous slide on failure
         if: steps.check_override.outputs.has_override != 'true' && failure()

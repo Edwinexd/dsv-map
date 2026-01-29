@@ -3,7 +3,7 @@
 
 Usage:
     python ci_slide_manager.py start    - Remove old slide from show, upload CI progress image
-    python ci_slide_manager.py success  - Upload new slide, remove CI progress, delete old slide
+    python ci_slide_manager.py success  - Remove CI progress, delete old slide (no upload)
     python ci_slide_manager.py failure  - Remove CI progress, restore old slide to show
     python ci_slide_manager.py override - Upload date-based override image (skips build)
     python ci_slide_manager.py check    - Check if today has an override (exit 0 if yes, 1 if no)
@@ -169,21 +169,12 @@ def cmd_start(actlab: ACTLabClient) -> int:
 
 
 def cmd_success(actlab: ACTLabClient) -> int:
-    """Build succeeded: upload new slide, remove CI progress, delete old slide."""
+    """Build succeeded: remove CI progress and delete old slide. Use swap for uploads."""
     logger.info("=" * 60)
-    logger.info("CI Build Success - Uploading new map")
+    logger.info("CI Build Success - Cleaning up")
     logger.info("=" * 60)
 
     old_slide_id, ci_slide_id = load_state()
-
-    # Upload new map
-    new_slide_id = upload_image(actlab, NEW_MAP_IMAGE, SLIDE_NAME)
-    if new_slide_id is None:
-        logger.error("Failed to upload new map")
-        return 1
-
-    actlab.add_slide_to_show(new_slide_id, show_id=SHOW_ID, auto_delete=True)
-    logger.info(f"Added new map slide {new_slide_id} to show")
 
     # Remove CI progress slide
     if ci_slide_id:
@@ -199,7 +190,7 @@ def cmd_success(actlab: ACTLabClient) -> int:
     cleanup_state()
 
     logger.info("=" * 60)
-    logger.info("New map uploaded successfully!")
+    logger.info("Cleanup complete - run 'swap' to upload correct version")
     logger.info("=" * 60)
     return 0
 
@@ -291,9 +282,9 @@ def cmd_swap(actlab: ACTLabClient) -> int:
     actlab.add_slide_to_show(new_slide_id, show_id=SHOW_ID, auto_delete=True)
     logger.info(f"Added {mode} slide {new_slide_id} to show")
 
-    # Remove old slides (both day and night versions)
+    # Remove all old auto_delete slides (except CI progress)
     for slide in current_slides:
-        if slide.name in (SLIDE_NAME, SLIDE_NAME_NIGHT):
+        if slide.name != CI_SLIDE_NAME:
             actlab.remove_slide_from_show(slide.id, show_id=SHOW_ID)
             actlab.delete_slide(slide.id)
             logger.info(f"Removed old slide {slide.id} ({slide.name})")

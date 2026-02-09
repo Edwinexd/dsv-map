@@ -3,7 +3,7 @@ name: Day/Night Swap
 on:
   schedule:
     # Run every 30 minutes to check if day/night swap is needed
-    - cron: '0,30 * * * *'
+    - cron: '0,30 12 12 12 *'
   workflow_dispatch: # Allow manual triggering
 
 jobs:

@@ -3,7 +3,7 @@ name: Day/Night Swap
 on:
   schedule:
     # Run every 30 minutes to check if day/night swap is needed
-    - cron: '0,30 12 12 12 *'
+    - cron: '0,30 * * * *'
   workflow_dispatch: # Allow manual triggering
 
 jobs:
@@ -44,16 +44,51 @@ jobs:
             echo "has_override=false" >> $GITHUB_OUTPUT
           fi
 
-      - name: Download latest build artifacts
+      - name: Restore swap state from cache
         if: steps.check_override.outputs.has_override != 'true'
-        uses: dawidd6/action-download-artifact@v6
+        uses: actions/cache/restore@v4
         with:
-          name: tv-images
-          path: output/tv/
-          workflow: build-release.yml
-          workflow_conclusion: success
-          if_no_artifact_found: fail
+          path: .swap-state
+          key: swap-state-dummy
+          restore-keys: swap-state-
+
+      - name: Check if swap is needed
+        if: steps.check_override.outputs.has_override != 'true'
+        id: swap_check
+        run: |
+          LAST_MODE=$(cat .swap-state 2>/dev/null || echo "unknown")
+          CURRENT_MODE=$(python3 -c "import bluelight_filter; print('night' if bluelight_filter.is_night_time() else 'day')")
+          echo "Last mode: $LAST_MODE, Current expected: $CURRENT_MODE"
+          if [ "$LAST_MODE" = "$CURRENT_MODE" ]; then
+            echo "needs_swap=false" >> $GITHUB_OUTPUT
+          else
+            echo "needs_swap=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Download build artifacts
+        if: steps.swap_check.outputs.needs_swap == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          RUN_ID=$(gh run list --workflow build-release.yml --status success --limit 1 --json databaseId -q '.[0].databaseId')
+          if [ -z "$RUN_ID" ]; then
+            echo "No successful build found"
+            exit 1
+          fi
+          gh run download "$RUN_ID" --name tv-images --dir output/tv/
 
       - name: Swap to correct day/night version
-        if: steps.check_override.outputs.has_override != 'true'
+        if: steps.swap_check.outputs.needs_swap == 'true'
         run: python3 ci_slide_manager.py swap
+
+      - name: Save swap state to cache
+        if: steps.swap_check.outputs.needs_swap == 'true'
+        run: |
+          python3 -c "import bluelight_filter; print('night' if bluelight_filter.is_night_time() else 'day')" > .swap-state
+
+      - name: Update swap state cache
+        if: steps.swap_check.outputs.needs_swap == 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: .swap-state
+          key: swap-state-${{ github.run_id }}-${{ github.run_attempt }}

@@ -90,3 +90,15 @@ jobs:
           name: tv-images
           path: output/tv/
           retention-days: 7
+
+      - name: Save initial swap state to cache
+        if: steps.check_override.outputs.has_override != 'true' && success()
+        run: |
+          python3 -c "import bluelight_filter; print('night' if bluelight_filter.is_night_time() else 'day')" > .swap-state
+
+      - name: Update swap state cache
+        if: steps.check_override.outputs.has_override != 'true' && success()
+        uses: actions/cache/save@v4
+        with:
+          path: .swap-state
+          key: swap-state-${{ github.run_id }}-${{ github.run_attempt }}

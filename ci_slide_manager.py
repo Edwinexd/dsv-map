@@ -39,7 +39,7 @@ NEW_MAP_IMAGE_NIGHT = SCRIPT_DIR / "output" / "tv" / "ACT_map_tv_night.png"
 STATE_FILE = SCRIPT_DIR / "output" / ".ci_slide_state.json"
 OVERRIDES_FILE = SCRIPT_DIR / "data" / "display_overrides.json"
 SLIDE_NAME = "ACT Lab Map"
-SLIDE_NAME_NIGHT = "ACT Lab Map (Night)"
+SLIDE_NAME_NIGHT = "ACT Lab Map (Dark)"
 CI_SLIDE_NAME = "CI Build In Progress"
 MAX_UPLOAD_SIZE_MB = 1.9
 

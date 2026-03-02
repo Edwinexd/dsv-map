@@ -567,15 +567,13 @@ for unit in all_units:
     except (OSError, ValueError) as e:
         print(f"❌ Failed to generate: {unit_output}: {e}")
 
-    # Generate night version (with blue-light filter) for ACT unit
+    # Generate dark mode night version for ACT unit
     if unit == "ACT":
         unit_output_night = f"output/tv/{unit.replace(' ', '_').replace('/', '_')}_map_tv_night.png"
-        print(f"\n[{unit}] Generating night version with blue-light filter...")
+        print(f"\n[{unit}] Generating dark mode night version...")
 
         try:
-            create_tv_16x9_with_qr.main(
-                unit_json, unit_output_night, title=unit, bluelight_filter_force=True
-            )
+            create_tv_16x9_with_qr.main(unit_json, unit_output_night, title=unit, dark_mode=True)
             tv_files.append(unit_output_night)
             print(f"✅ Generated: {unit_output_night}")
         except (OSError, ValueError) as e:

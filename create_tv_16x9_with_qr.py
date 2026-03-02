@@ -16,10 +16,36 @@ from PIL import Image, ImageDraw, ImageFont
 import bluelight_filter
 import event_utils
 
+# Color themes for light (day) and dark (night) modes
+LIGHT_THEME = {
+    "canvas_bg": (255, 255, 255),
+    "panel_bg": (0, 47, 95),
+    "panel_text": (255, 255, 255),
+    "name_box": (0, 47, 95, 240),
+    "name_text": (255, 255, 255, 255),
+    "room_box": (255, 107, 53, 240),
+    "room_text": (255, 255, 255, 255),
+    "line": (0, 47, 95, 200),
+    "profile_border": (0, 47, 95, 255),
+}
 
-def main(employee_json, output_png, title=None, bluelight_filter_force=None):
+DARK_THEME = {
+    "canvas_bg": (30, 30, 35),
+    "panel_bg": (18, 30, 50),
+    "panel_text": (210, 215, 225),
+    "name_box": (25, 60, 115, 240),
+    "name_text": (210, 215, 225, 255),
+    "room_box": (180, 75, 30, 240),
+    "room_text": (210, 215, 225, 255),
+    "line": (50, 95, 160, 200),
+    "profile_border": (45, 90, 155, 255),
+}
+
+
+def main(employee_json, output_png, title=None, bluelight_filter_force=None, dark_mode=False):
     employee_file = employee_json
     output_file = output_png
+    theme = DARK_THEME if dark_mode else LIGHT_THEME
 
     # Load employee data
     with open(employee_file, encoding="utf-8") as f:
@@ -168,8 +194,9 @@ def main(employee_json, output_png, title=None, bluelight_filter_force=None):
     print("✓ Spread out overlapping employees")
 
     # Load floor plan
-    print("Loading floor plan...")
-    floor_plan_path = os.path.join(script_dir, "assets", "floor_plan.png")
+    floor_plan_name = "floor_plan_dark.png" if dark_mode else "floor_plan.png"
+    print(f"Loading floor plan ({floor_plan_name})...")
+    floor_plan_path = os.path.join(script_dir, "assets", floor_plan_name)
     floor_plan_original = Image.open(floor_plan_path).convert("RGBA")
     img_width, img_height = floor_plan_original.size
 
@@ -194,7 +221,7 @@ def main(employee_json, output_png, title=None, bluelight_filter_force=None):
     map_offset_y = (map_area_height - new_map_height) // 2
 
     # Create the final 16:9 canvas
-    canvas = Image.new("RGB", (target_width, target_height), (255, 255, 255))
+    canvas = Image.new("RGB", (target_width, target_height), theme["canvas_bg"])
 
     # Resize and paste floor plan
     floor_plan_resized = floor_plan_original.resize(
@@ -328,14 +355,14 @@ def main(employee_json, output_png, title=None, bluelight_filter_force=None):
 
     # Draw side panel background
     panel_x = map_area_width
-    draw.rectangle([panel_x, 0, target_width, target_height], fill=(0, 47, 95))
+    draw.rectangle([panel_x, 0, target_width, target_height], fill=theme["panel_bg"])
 
     # Add title to side panel
     display_title = title if title else "DSV Staff Map"
     title_bbox = draw.textbbox((0, 0), display_title, font=font_title)
     title_width = title_bbox[2] - title_bbox[0]
     title_x = panel_x + (side_panel_width - title_width) // 2
-    draw.text((title_x, 80), display_title, fill=(255, 255, 255), font=font_title)
+    draw.text((title_x, 80), display_title, fill=theme["panel_text"], font=font_title)
 
     # Load and paste location update QR code (main QR code)
     print("Loading location update QR code...")
@@ -355,7 +382,9 @@ def main(employee_json, output_png, title=None, bluelight_filter_force=None):
             line_bbox = draw.textbbox((0, 0), line, font=font_info)
             line_width = line_bbox[2] - line_bbox[0]
             line_x = panel_x + (side_panel_width - line_width) // 2
-            draw.text((line_x, instruction_y + i * 60), line, fill=(255, 255, 255), font=font_info)
+            draw.text(
+                (line_x, instruction_y + i * 60), line, fill=theme["panel_text"], font=font_info
+            )
 
     except OSError as e:
         print(f"Warning: Could not load qr_fix_location.png: {e}")
@@ -368,7 +397,7 @@ def main(employee_json, output_png, title=None, bluelight_filter_force=None):
     stats_bbox = draw.textbbox((0, 0), stats_text, font=font_name)
     stats_width = stats_bbox[2] - stats_bbox[0]
     stats_x = panel_x + (side_panel_width - stats_width) // 2
-    draw.text((stats_x, stats_y), stats_text, fill=(255, 255, 255), font=font_name)
+    draw.text((stats_x, stats_y), stats_text, fill=theme["panel_text"], font=font_name)
 
     # Add repository QR code and SU logo at the bottom
     print("Loading repository QR code and SU logo...")
@@ -414,7 +443,7 @@ def main(employee_json, output_png, title=None, bluelight_filter_force=None):
                 draw.text(
                     (repo_text_x, repo_text_y + i * line_height),
                     line,
-                    fill=(255, 255, 255),
+                    fill=theme["panel_text"],
                     font=font_info,
                 )
 
@@ -996,7 +1025,7 @@ def main(employee_json, output_png, title=None, bluelight_filter_force=None):
     print(f"Calculated {len(label_data)} label positions")
 
     # Draw lines (supporting both straight and elbow/bent lines)
-    line_color = (0, 47, 95, 200)
+    line_color = theme["line"]
     line_width = 6
     for entry in label_data:
         _person_id, x, y, label_x, label_y, _method, _name, _room, elbow = entry
@@ -1040,7 +1069,7 @@ def main(employee_json, output_png, title=None, bluelight_filter_force=None):
                 border_size = 96
                 border_img = Image.new("RGBA", (border_size, border_size), (0, 0, 0, 0))
                 border_draw = ImageDraw.Draw(border_img)
-                border_color = (0, 47, 95, 255)
+                border_color = theme["profile_border"]
                 border_draw.ellipse((0, 0, border_size - 1, border_size - 1), fill=border_color)
 
                 border_img.paste(profile_pic, (3, 3), mask)
@@ -1068,8 +1097,8 @@ def main(employee_json, output_png, title=None, bluelight_filter_force=None):
             label_x + name_width + padding_box,
             label_y + name_height + padding_box,
         ]
-        draw.rounded_rectangle(name_box, radius=10, fill=(0, 47, 95, 240))
-        draw.text((label_x, label_y), name, fill=(255, 255, 255, 255), font=font_name)
+        draw.rounded_rectangle(name_box, radius=10, fill=theme["name_box"])
+        draw.text((label_x, label_y), name, fill=theme["name_text"], font=font_name)
 
         room_bbox = draw.textbbox((0, 0), room, font=font_room)
         room_width = room_bbox[2] - room_bbox[0]
@@ -1082,8 +1111,8 @@ def main(employee_json, output_png, title=None, bluelight_filter_force=None):
             label_x + room_width + padding_box,
             room_y + room_height + padding_box,
         ]
-        draw.rounded_rectangle(room_box, radius=8, fill=(255, 107, 53, 240))
-        draw.text((label_x, room_y), room, fill=(255, 255, 255, 255), font=font_room)
+        draw.rounded_rectangle(room_box, radius=8, fill=theme["room_box"])
+        draw.text((label_x, room_y), room, fill=theme["room_text"], font=font_room)
 
     # Draw event overlays (e.g., Santa hats) on top of everything
     for pic_path, center_x, center_y, pic_size in profile_positions:
@@ -1093,10 +1122,11 @@ def main(employee_json, output_png, title=None, bluelight_filter_force=None):
         if overlay:
             canvas.paste(overlay["image"], (overlay["x"], overlay["y"]), overlay["image"])
 
-    # Apply blue-light filter if it's night time in Stockholm (or forced)
-    canvas = bluelight_filter.maybe_apply_bluelight_filter(
-        canvas, intensity=0.6, force=bluelight_filter_force
-    )
+    # Apply blue-light filter if it's night time in Stockholm (skip in dark mode)
+    if not dark_mode:
+        canvas = bluelight_filter.maybe_apply_bluelight_filter(
+            canvas, intensity=0.6, force=bluelight_filter_force
+        )
 
     # Save
     canvas.save(output_file, "PNG")
@@ -1120,6 +1150,11 @@ if __name__ == "__main__":
         default="auto",
         help="Blue-light filter: auto (based on time), on (always), off (never)",
     )
+    parser.add_argument(
+        "--dark-mode",
+        action="store_true",
+        help="Use dark mode color scheme (overrides bluelight filter)",
+    )
     args = parser.parse_args()
 
     bluelight_force = None
@@ -1133,4 +1168,5 @@ if __name__ == "__main__":
         args.output_png,
         title=args.title,
         bluelight_filter_force=bluelight_force,
+        dark_mode=args.dark_mode,
     )

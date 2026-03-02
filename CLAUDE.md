@@ -86,7 +86,7 @@ profile_pictures/ - Downloaded employee photos (gitignored)
 - **upload_and_add_to_show.py** - Uploads to ACT Lab display system using dsv-wrapper (manual use)
 - **ci_slide_manager.py** - Manages CI build progress indicator on ACT Lab display (used by GitHub Actions)
 - **event_utils.py** - Loads active events and their profile processors dynamically
-- **bluelight_filter.py** - Applies blue-light filter based on Stockholm day/night cycle
+- **bluelight_filter.py** - Stockholm day/night time detection (used for day/dark mode swap)
 
 ### Data Files
 
@@ -96,6 +96,7 @@ profile_pictures/ - Downloaded employee photos (gitignored)
 ### Assets
 
 - **assets/floor_plan.png** - Base floor plan image (3056×3056px)
+- **assets/floor_plan_dark.png** - Dark mode floor plan (HLS lightness-inverted version)
 - **assets/qr_fix_location.png** - QR code linking to location update issue template
 - **assets/repo_qr.png** - QR code linking to repository
 - **assets/SU_logotyp_Landscape_Invert_1000px.png** - Stockholm University logo
@@ -282,47 +283,49 @@ The Christmas event includes a profile processor that uses OpenCV Haar Cascade f
 
 Events are stored in `assets/events/` folders. Browse the folder to see all configured events. Date ranges can wrap around year boundaries (e.g., Dec 26 - Jan 9 for New Year).
 
-## Blue-Light Filter System
+## Day/Night Mode System
 
-TV displays automatically switch between day and night modes based on Stockholm's sunrise/sunset times. During night hours (before dawn or after dusk), a warm blue-light filter is applied to reduce eye strain.
+TV displays automatically switch between day and dark modes based on Stockholm's sunrise/sunset times. During night hours (before dawn or after dusk), a full dark mode version is displayed.
 
 ### How It Works
 
-1. **Daily Build**: Generates both day and night versions of TV images
-   - `ACT_map_tv.png` - Day version (no filter)
-   - `ACT_map_tv_night.png` - Night version (warm blue-light filter applied)
+1. **Daily Build**: Generates both day and dark mode versions of TV images
+   - `ACT_map_tv.png` - Day version (light theme)
+   - `ACT_map_tv_night.png` - Dark mode version (dark theme with `assets/floor_plan_dark.png`)
 
-2. **Day/Night Swap**: Every 2 hours, the workflow checks Stockholm time and uploads the appropriate version
+2. **Day/Night Swap**: Every 30 minutes, the workflow checks Stockholm time and uploads the appropriate version
 
 3. **Time Detection**: Uses the `astral` library to calculate civil twilight times for Stockholm
-   - Night mode: Before dawn (sun 6° below horizon) or after dusk
+   - Dark mode: Before dawn (sun 6° below horizon) or after dusk
    - Day mode: Between dawn and dusk
+
+### Dark Mode
+
+Dark mode uses a completely different color scheme rather than just a filter overlay:
+- Dark canvas background and side panel
+- Pre-generated dark floor plan (`assets/floor_plan_dark.png`) with inverted lightness
+- Muted but visible label and line colors for readability
+- Color themes defined as `LIGHT_THEME` / `DARK_THEME` in `create_tv_16x9_with_qr.py`
 
 ### Configuration
 
-The filter is controlled in `bluelight_filter.py`:
+Time detection is handled by `bluelight_filter.py`:
 
 | Function | Description |
 |----------|-------------|
 | `get_sun_times()` | Returns sunrise, sunset, dawn, dusk for Stockholm |
 | `is_night_time()` | Returns True if currently night time in Stockholm |
-| `apply_bluelight_filter(image, intensity)` | Applies warm filter to image |
-| `maybe_apply_bluelight_filter(image, intensity, force)` | Applies filter based on time or force setting |
-
-**Filter parameters:**
-- `intensity`: Filter strength from 0.0 to 1.0 (default: 0.3)
-- `force`: Override time check (True=always apply, False=never, None=check time)
 
 ### CI Slide Manager Commands
 
-- `python ci_slide_manager.py swap` - Upload correct day/night version based on current Stockholm time
+- `python ci_slide_manager.py swap` - Upload correct day/dark version based on current Stockholm time
 
 ## Automation
 
 ### Daily Build (2:00 AM UTC)
 - `.github/workflows/build-release.yml`
 - Shows "Build in Progress" indicator on ACT Lab display during build
-- Runs `main.py` to regenerate all maps (both day and night versions)
+- Runs `main.py` to regenerate all maps (both day and dark mode versions)
 - On success: uploads new map, removes progress indicator
 - On failure: removes progress indicator, keeps previous map as fallback (CI still fails)
 - Requires `SU_USERNAME` and `SU_PASSWORD` secrets
@@ -331,18 +334,18 @@ The filter is controlled in `bluelight_filter.py`:
 - `.github/workflows/day-night-swap.yml`
 - Separate workflow from build
 - Downloads artifacts from last successful build
-- Checks if correct day/night version is displayed
+- Checks if correct day/dark version is displayed
 - Only swaps if the wrong version is currently showing
 
 **CI Slide Management Flow (Full Build):**
 1. `ci_slide_manager.py start` - Disables auto-delete on current slide, uploads progress indicator
-2. Build runs (`main.py`) - generates both day and night TV images
+2. Build runs (`main.py`) - generates both day and dark mode TV images
 3. On success: `ci_slide_manager.py success` - Removes progress indicator, deletes old slide (no upload)
-4. On success: `ci_slide_manager.py swap` - Uploads correct day/night version based on Stockholm time
+4. On success: `ci_slide_manager.py swap` - Uploads correct day/dark version based on Stockholm time
 5. On failure: `ci_slide_manager.py failure` - Removes progress indicator, old slide remains
 
 **CI Slide Management Flow (Swap):**
-1. `ci_slide_manager.py swap` - Checks Stockholm time, uploads correct day/night version if changed
+1. `ci_slide_manager.py swap` - Checks Stockholm time, uploads correct day/dark version if changed
 
 ### Location Update Requests
 - `.github/workflows/location-update.yml`

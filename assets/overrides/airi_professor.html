@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=1920, height=1080">
+    <title>Congratulations Airi!</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            width: 1920px;
+            height: 1080px;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #0a1628 0%, #1a2744 50%, #0d2137 100%);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .bg-circle {
+            position: absolute;
+            border-radius: 50%;
+            opacity: 0.08;
+        }
+
+        .bg-circle-1 {
+            width: 700px;
+            height: 700px;
+            background: linear-gradient(45deg, #c9a94e, #f0d060);
+            top: -250px;
+            right: -150px;
+        }
+
+        .bg-circle-2 {
+            width: 500px;
+            height: 500px;
+            background: linear-gradient(45deg, #c9a94e, #e8c84a);
+            bottom: -150px;
+            left: -100px;
+        }
+
+        .bg-circle-3 {
+            width: 350px;
+            height: 350px;
+            background: linear-gradient(45deg, #ffffff, #c9a94e);
+            top: 40%;
+            left: 8%;
+            transform: translateY(-50%);
+        }
+
+        .content {
+            text-align: center;
+            z-index: 10;
+            padding: 60px;
+        }
+
+        .congrats-label {
+            font-size: 32px;
+            font-weight: 300;
+            letter-spacing: 12px;
+            text-transform: uppercase;
+            color: rgba(201, 169, 78, 0.9);
+            margin-bottom: 30px;
+        }
+
+        .title {
+            font-size: 100px;
+            font-weight: 700;
+            letter-spacing: -2px;
+            margin-bottom: 10px;
+            background: linear-gradient(90deg, #f0d060, #c9a94e);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            font-size: 44px;
+            font-weight: 300;
+            color: rgba(255,255,255,0.85);
+            margin-bottom: 60px;
+        }
+
+        .info-box {
+            background: rgba(255,255,255,0.07);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(201, 169, 78, 0.3);
+            border-radius: 24px;
+            padding: 40px 80px;
+            display: inline-block;
+        }
+
+        .message {
+            font-size: 32px;
+            font-weight: 400;
+            color: rgba(255,255,255,0.9);
+            line-height: 1.6;
+        }
+
+        .highlight {
+            color: #f0d060;
+            font-weight: 600;
+        }
+
+        .footer {
+            position: absolute;
+            bottom: 40px;
+            display: flex;
+            align-items: center;
+            gap: 30px;
+            opacity: 0.6;
+        }
+
+        .footer-text {
+            font-size: 20px;
+            letter-spacing: 2px;
+        }
+
+        .deco-line {
+            position: absolute;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, rgba(201, 169, 78, 0.4), transparent);
+        }
+
+        .deco-line-1 {
+            width: 500px;
+            top: 180px;
+            left: 80px;
+            transform: rotate(-10deg);
+        }
+
+        .deco-line-2 {
+            width: 400px;
+            bottom: 220px;
+            right: 120px;
+            transform: rotate(15deg);
+        }
+
+        .star {
+            position: absolute;
+            color: rgba(201, 169, 78, 0.15);
+            font-size: 40px;
+        }
+
+        .star-1 { top: 120px; left: 300px; font-size: 50px; }
+        .star-2 { top: 200px; right: 400px; font-size: 35px; }
+        .star-3 { bottom: 180px; left: 500px; font-size: 45px; }
+        .star-4 { top: 350px; right: 200px; font-size: 30px; }
+        .star-5 { bottom: 300px; right: 500px; font-size: 55px; }
+    </style>
+</head>
+<body>
+    <div class="bg-circle bg-circle-1"></div>
+    <div class="bg-circle bg-circle-2"></div>
+    <div class="bg-circle bg-circle-3"></div>
+    <div class="deco-line deco-line-1"></div>
+    <div class="deco-line deco-line-2"></div>
+    <div class="star star-1">&#9733;</div>
+    <div class="star star-2">&#9733;</div>
+    <div class="star star-3">&#9733;</div>
+    <div class="star star-4">&#9733;</div>
+    <div class="star star-5">&#9733;</div>
+
+    <div class="content">
+        <p class="congrats-label">Congratulations</p>
+        <h1 class="title">Airi Lampinen</h1>
+        <p class="subtitle">Full Professor</p>
+
+        <div class="info-box">
+            <p class="message">
+                ACT has a new full professor!<br>
+                <span class="highlight">Grattis Airi!</span>
+            </p>
+        </div>
+    </div>
+
+    <div class="footer">
+        <span class="footer-text">Department of Computer and Systems Sciences</span>
+    </div>
+</body>
+</html>

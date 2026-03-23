@@ -11,5 +11,25 @@
   "2026-01-22": {
     "image": "assets/overrides/act_conference.jpg",
     "name": "ACT Conference"
+  },
+  "2026-03-23": {
+    "image": "assets/overrides/airi_professor.png",
+    "name": "Congratulations Airi - Full Professor"
+  },
+  "2026-03-24": {
+    "image": "assets/overrides/airi_professor.png",
+    "name": "Congratulations Airi - Full Professor"
+  },
+  "2026-03-25": {
+    "image": "assets/overrides/airi_professor.png",
+    "name": "Congratulations Airi - Full Professor"
+  },
+  "2026-03-26": {
+    "image": "assets/overrides/airi_professor.png",
+    "name": "Congratulations Airi - Full Professor"
+  },
+  "2026-03-27": {
+    "image": "assets/overrides/airi_professor.png",
+    "name": "Congratulations Airi - Full Professor"
   }
 }

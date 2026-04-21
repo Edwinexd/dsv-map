@@ -1,0 +1,33 @@
+{
+  "start_month": 4,
+  "start_day": 27,
+  "end_month": 5,
+  "end_day": 1,
+  "assets": [
+    {
+      "type": "image",
+      "file": "image.png",
+      "scale": 0.85,
+      "position": "bottom-left",
+      "padding": 30
+    },
+    {
+      "type": "message",
+      "texts": [
+        "Glad Valborg!",
+        "Happy Walpurgis!",
+        "Sista april!",
+        "Välkommen vår!",
+        "Vårens ankomst!",
+        "Kasta loss vintern!"
+      ],
+      "color": [230, 92, 0],
+      "font_size": 52,
+      "position": "bottom-left",
+      "padding": 30,
+      "offset_x": 253,
+      "offset_y": -530,
+      "align": "center"
+    }
+  ]
+}

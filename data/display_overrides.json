@@ -31,5 +31,17 @@
   "2026-03-27": {
     "image": "assets/overrides/airi_professor.png",
     "name": "Congratulations Airi - Full Professor"
+  },
+  "2026-05-26": {
+    "image": "assets/overrides/act_conference_summer.png",
+    "name": "ACT Conference - Summer Edition"
+  },
+  "2026-05-27": {
+    "image": "assets/overrides/act_conference_summer.png",
+    "name": "ACT Conference - Summer Edition"
+  },
+  "2026-05-28": {
+    "image": "assets/overrides/act_conference_summer.png",
+    "name": "ACT Conference - Summer Edition"
   }
 }

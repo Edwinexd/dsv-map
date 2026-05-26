@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=1920, height=1080">
+    <title>ACT Conference Summer 2026</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&family=Pacifico&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            width: 1920px;
+            height: 1080px;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            /* Sunny summer sky -> warm sand gradient */
+            background: linear-gradient(180deg, #ffd86b 0%, #ffae3d 35%, #ff7e5f 70%, #ff5e7e 100%);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Sun in the sky */
+        .sun {
+            position: absolute;
+            width: 380px;
+            height: 380px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 35% 35%, #fff7c2 0%, #ffe066 40%, #ffb347 80%, rgba(255,179,71,0) 100%);
+            top: -90px;
+            right: -90px;
+            box-shadow: 0 0 200px 60px rgba(255, 220, 120, 0.55);
+        }
+
+        /* Sun rays via pseudo-elements */
+        .sun::before {
+            content: "";
+            position: absolute;
+            inset: -120px;
+            border-radius: 50%;
+            background: conic-gradient(
+                from 0deg,
+                rgba(255,236,150,0.35) 0deg 10deg, transparent 10deg 30deg,
+                rgba(255,236,150,0.35) 30deg 40deg, transparent 40deg 60deg,
+                rgba(255,236,150,0.35) 60deg 70deg, transparent 70deg 90deg,
+                rgba(255,236,150,0.35) 90deg 100deg, transparent 100deg 120deg,
+                rgba(255,236,150,0.35) 120deg 130deg, transparent 130deg 150deg,
+                rgba(255,236,150,0.35) 150deg 160deg, transparent 160deg 180deg,
+                rgba(255,236,150,0.35) 180deg 190deg, transparent 190deg 210deg,
+                rgba(255,236,150,0.35) 210deg 220deg, transparent 220deg 240deg,
+                rgba(255,236,150,0.35) 240deg 250deg, transparent 250deg 270deg,
+                rgba(255,236,150,0.35) 270deg 280deg, transparent 280deg 300deg,
+                rgba(255,236,150,0.35) 300deg 310deg, transparent 310deg 330deg,
+                rgba(255,236,150,0.35) 330deg 340deg, transparent 340deg 360deg
+            );
+            mask: radial-gradient(circle, transparent 180px, black 200px, black 320px, transparent 330px);
+            -webkit-mask: radial-gradient(circle, transparent 180px, black 200px, black 320px, transparent 330px);
+            opacity: 0.55;
+        }
+
+        /* Wavy ocean / sand at the bottom */
+        .ocean {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 200px;
+            background: linear-gradient(180deg, rgba(0, 178, 194, 0.0) 0%, #00b2c2 30%, #0099b3 100%);
+            clip-path: polygon(
+                0% 30%, 5% 22%, 12% 32%, 20% 25%, 28% 33%, 36% 24%,
+                44% 32%, 52% 23%, 60% 33%, 68% 25%, 76% 32%, 84% 24%,
+                92% 33%, 100% 25%, 100% 100%, 0% 100%
+            );
+            opacity: 0.85;
+        }
+
+        .ocean-2 {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 130px;
+            background: linear-gradient(180deg, rgba(0, 200, 220, 0.0) 0%, #00c8dc 40%, #007e95 100%);
+            clip-path: polygon(
+                0% 40%, 6% 28%, 14% 38%, 22% 30%, 30% 38%, 38% 28%,
+                46% 38%, 54% 28%, 62% 38%, 70% 30%, 78% 38%, 86% 28%,
+                94% 38%, 100% 30%, 100% 100%, 0% 100%
+            );
+        }
+
+        /* Palm leaf decorations using emoji-free CSS shapes */
+        .palm {
+            position: absolute;
+            font-size: 220px;
+            line-height: 1;
+            user-select: none;
+            filter: drop-shadow(0 8px 20px rgba(0,0,0,0.25));
+        }
+
+        .palm-left {
+            left: 40px;
+            bottom: 80px;
+            transform: rotate(-12deg);
+        }
+
+        .palm-right {
+            right: 40px;
+            bottom: 80px;
+            transform: rotate(12deg) scaleX(-1);
+        }
+
+        /* Floating beach icons */
+        .float {
+            position: absolute;
+            font-size: 90px;
+            line-height: 1;
+            filter: drop-shadow(0 6px 14px rgba(0,0,0,0.2));
+        }
+
+        .float-1 { top: 120px; left: 120px; transform: rotate(-8deg); }
+        .float-2 { top: 220px; left: 320px; font-size: 70px; transform: rotate(15deg); }
+        .float-3 { top: 160px; right: 460px; font-size: 80px; transform: rotate(-10deg); }
+        .float-4 { bottom: 320px; left: 200px; font-size: 70px; transform: rotate(20deg); }
+        .float-5 { bottom: 360px; right: 240px; font-size: 80px; transform: rotate(-15deg); }
+
+        /* Content container */
+        .content {
+            text-align: center;
+            z-index: 10;
+            padding: 60px;
+            position: relative;
+        }
+
+        /* Main title */
+        .title {
+            font-size: 140px;
+            font-weight: 800;
+            letter-spacing: -3px;
+            margin-bottom: 10px;
+            color: #ffffff;
+            text-shadow:
+                0 6px 0 #d24a6a,
+                0 10px 30px rgba(0,0,0,0.25);
+        }
+
+        .title span {
+            background: linear-gradient(180deg, #fff8c2 0%, #ffd86b 50%, #ff7e5f 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: none;
+        }
+
+        /* Subtitle - playful summer script */
+        .subtitle {
+            font-family: 'Pacifico', cursive;
+            font-size: 64px;
+            font-weight: 400;
+            color: #ffffff;
+            margin-bottom: 50px;
+            text-shadow: 0 4px 12px rgba(0,0,0,0.25);
+            letter-spacing: 1px;
+        }
+
+        /* Info box */
+        .info-box {
+            background: rgba(255,255,255,0.18);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 2px solid rgba(255,255,255,0.45);
+            border-radius: 28px;
+            padding: 44px 90px;
+            display: inline-block;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+        }
+
+        .date {
+            font-size: 44px;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 18px;
+            text-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+
+        .location {
+            font-size: 30px;
+            font-weight: 500;
+            color: rgba(255,255,255,0.98);
+        }
+
+        .location-icon {
+            display: inline-block;
+            margin-right: 10px;
+        }
+
+        /* Footer */
+        .footer {
+            position: absolute;
+            bottom: 30px;
+            display: flex;
+            align-items: center;
+            gap: 30px;
+            opacity: 0.85;
+            z-index: 20;
+            color: #ffffff;
+            text-shadow: 0 2px 6px rgba(0,0,0,0.3);
+        }
+
+        .footer-text {
+            font-size: 20px;
+            letter-spacing: 2px;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <!-- Sky -->
+    <div class="sun"></div>
+
+    <!-- Floating summer icons -->
+    <div class="float float-1">☀️</div>
+    <div class="float float-2">🌴</div>
+    <div class="float float-3">🍹</div>
+    <div class="float float-4">🏖️</div>
+    <div class="float float-5">🐚</div>
+
+    <!-- Palm tree corners -->
+    <div class="palm palm-left">🌴</div>
+    <div class="palm palm-right">🌴</div>
+
+    <!-- Ocean waves -->
+    <div class="ocean"></div>
+    <div class="ocean-2"></div>
+
+    <!-- Main content -->
+    <div class="content">
+        <h1 class="title"><span>ACT</span> Conference</h1>
+        <p class="subtitle">Summer edition — see you there!</p>
+
+        <div class="info-box">
+            <p class="date">Thursday, May 28th</p>
+            <p class="location">
+                <span class="location-icon">📍</span>
+                Odenplan
+            </p>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+        <span class="footer-text">Department of Computer and Systems Sciences</span>
+    </div>
+</body>
+</html>

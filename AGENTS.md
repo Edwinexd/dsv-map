@@ -313,8 +313,10 @@ Time detection is handled by `bluelight_filter.py`:
 
 | Function | Description |
 |----------|-------------|
-| `get_sun_times()` | Returns sunrise, sunset, dawn, dusk for Stockholm |
+| `get_sun_times()` | Returns sunrise, sunset, dawn, dusk for Stockholm. Any value is `None` when the sun never reaches that angle (e.g. no civil dawn/dusk during summer white nights) |
 | `is_night_time()` | Returns True if currently night time in Stockholm |
+
+**Note:** `is_night_time()` checks the sun's elevation directly (night = sun more than 6° below the horizon) instead of dawn/dusk event times. During Stockholm's white nights around the summer solstice the sun never reaches civil twilight depression, so astral's `dawn()`/`dusk()` raise `ValueError: Unable to find a dawn time on the date specified`. Using elevation avoids that and correctly yields day mode all night.
 
 ### CI Slide Manager Commands
 

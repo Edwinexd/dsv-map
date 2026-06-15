@@ -11,11 +11,14 @@ This module provides functionality to:
 from datetime import UTC, datetime
 
 from astral import LocationInfo
-from astral.sun import sun
+from astral.sun import dawn, dusk, elevation, sunrise, sunset
 from PIL import Image
 
 # Stockholm location info
 STOCKHOLM = LocationInfo("Stockholm", "Sweden", "Europe/Stockholm", 59.3293, 18.0686)
+
+# Civil twilight threshold: sun this many degrees below the horizon counts as night
+CIVIL_TWILIGHT_DEPRESSION = 6.0
 
 
 def get_sun_times(date=None):
@@ -26,25 +29,38 @@ def get_sun_times(date=None):
         date: Optional date object. Defaults to today.
 
     Returns:
-        dict with 'sunrise' and 'sunset' as timezone-aware datetime objects
+        dict with 'sunrise'/'sunset' and 'dawn'/'dusk' as timezone-aware
+        datetime objects. dawn/dusk are None during white nights / polar day
+        when the sun never reaches civil twilight depression.
     """
     if date is None:
         date = datetime.now(UTC).date()
 
-    s = sun(STOCKHOLM.observer, date=date, tzinfo=STOCKHOLM.timezone)
+    def safe(func):
+        # astral raises ValueError when the sun never reaches the required angle
+        # (e.g. Stockholm white nights have no civil dawn/dusk).
+        try:
+            return func(STOCKHOLM.observer, date=date, tzinfo=STOCKHOLM.timezone)
+        except ValueError:
+            return None
+
     return {
-        "sunrise": s["sunrise"],
-        "sunset": s["sunset"],
-        "dawn": s["dawn"],  # Civil dawn (sun 6° below horizon)
-        "dusk": s["dusk"],  # Civil dusk (sun 6° below horizon)
+        "sunrise": safe(sunrise),
+        "sunset": safe(sunset),
+        "dawn": safe(dawn),  # Civil dawn (sun 6° below horizon)
+        "dusk": safe(dusk),  # Civil dusk (sun 6° below horizon)
     }
 
 
 def is_night_time(now=None):
     """
-    Check if the current time is during night hours (before dawn or after dusk).
+    Check if the current time is during night hours.
 
-    Uses civil twilight (sun 6° below horizon) as the threshold.
+    Night is defined as the sun being more than 6° below the horizon (civil
+    twilight). This uses the sun's elevation directly rather than dawn/dusk
+    events, so it works year-round including Stockholm's white nights, when the
+    sun never reaches civil twilight depression and astral's dawn()/dusk()
+    raise "Unable to find a dawn time on the date specified".
 
     Args:
         now: Optional datetime. Defaults to current time.
@@ -58,10 +74,7 @@ def is_night_time(now=None):
         # Assume Stockholm timezone if no timezone provided
         now = now.replace(tzinfo=STOCKHOLM.tzinfo)
 
-    sun_times = get_sun_times(now.date())
-
-    # Night time is before dawn or after dusk
-    return now < sun_times["dawn"] or now > sun_times["dusk"]
+    return elevation(STOCKHOLM.observer, now) < -CIVIL_TWILIGHT_DEPRESSION
 
 
 def apply_bluelight_filter(image, intensity=0.6):
@@ -141,9 +154,13 @@ if __name__ == "__main__":
     sun_times = get_sun_times()
     now = datetime.now(STOCKHOLM.tzinfo)
 
+    def fmt(value):
+        return value.strftime("%H:%M:%S") if value is not None else "n/a (white night)"
+
     print(f"Current time in Stockholm: {now.strftime('%Y-%m-%d %H:%M:%S %Z')}")
-    print(f"Dawn:    {sun_times['dawn'].strftime('%H:%M:%S')}")
-    print(f"Sunrise: {sun_times['sunrise'].strftime('%H:%M:%S')}")
-    print(f"Sunset:  {sun_times['sunset'].strftime('%H:%M:%S')}")
-    print(f"Dusk:    {sun_times['dusk'].strftime('%H:%M:%S')}")
+    print(f"Dawn:    {fmt(sun_times['dawn'])}")
+    print(f"Sunrise: {fmt(sun_times['sunrise'])}")
+    print(f"Sunset:  {fmt(sun_times['sunset'])}")
+    print(f"Dusk:    {fmt(sun_times['dusk'])}")
+    print(f"Sun elevation now: {elevation(STOCKHOLM.observer, now):.2f}°")
     print(f"Is night time: {is_night_time()}")

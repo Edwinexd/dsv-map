@@ -6,6 +6,10 @@ on:
     - cron: '0,30 * * * *'
   workflow_dispatch: # Allow manual triggering
 
+permissions:
+  contents: read
+  actions: write # Needed to dispatch build-release.yml when artifacts are missing
+
 jobs:
   swap:
     runs-on: ubuntu-latest
@@ -67,27 +71,36 @@ jobs:
 
       - name: Download build artifacts
         if: steps.swap_check.outputs.needs_swap == 'true'
+        id: download
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           RUN_ID=$(gh run list --workflow build-release.yml --status success --limit 1 --json databaseId -q '.[0].databaseId')
-          if [ -z "$RUN_ID" ]; then
-            echo "No successful build found"
-            exit 1
+          if [ -n "$RUN_ID" ] && gh run download "$RUN_ID" --name tv-images --dir output/tv/; then
+            echo "has_artifacts=true" >> $GITHUB_OUTPUT
+            exit 0
           fi
-          gh run download "$RUN_ID" --name tv-images --dir output/tv/
+          echo "has_artifacts=false" >> $GITHUB_OUTPUT
+          # Scheduled builds can be dropped by GitHub; trigger one (it swaps itself on success)
+          ACTIVE=$(gh run list --workflow build-release.yml --json status -q '[.[] | select(.status != "completed")] | length')
+          if [ "$ACTIVE" -gt 0 ]; then
+            echo "No build artifacts found, build already running"
+          else
+            echo "No build artifacts found, dispatching build"
+            gh workflow run build-release.yml --ref "${{ github.ref_name }}"
+          fi
 
       - name: Swap to correct day/night version
-        if: steps.swap_check.outputs.needs_swap == 'true'
+        if: steps.download.outputs.has_artifacts == 'true'
         run: python3 ci_slide_manager.py swap
 
       - name: Save swap state to cache
-        if: steps.swap_check.outputs.needs_swap == 'true'
+        if: steps.download.outputs.has_artifacts == 'true'
         run: |
           python3 -c "import bluelight_filter; print('night' if bluelight_filter.is_night_time() else 'day')" > .swap-state
 
       - name: Update swap state cache
-        if: steps.swap_check.outputs.needs_swap == 'true'
+        if: steps.download.outputs.has_artifacts == 'true'
         uses: actions/cache/save@v4
         with:
           path: .swap-state

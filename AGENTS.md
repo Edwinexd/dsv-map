@@ -336,6 +336,7 @@ Time detection is handled by `bluelight_filter.py`:
 - `.github/workflows/day-night-swap.yml`
 - Separate workflow from build
 - Downloads artifacts from last successful build
+- If no artifacts exist (e.g. GitHub dropped the scheduled build, or they expired), dispatches `build-release.yml` unless a build is already running
 - Checks if correct day/dark version is displayed
 - Only swaps if the wrong version is currently showing
 
